@@ -1,6 +1,6 @@
 # Group6666
 
-Midi Runner 的 Godot 项目源码在 [`godot/`](godot/)。仓库根目录的 `index.html` 是网页入口，`midi-runner.html` 加载同目录的 `index.js`、`index.wasm` 和 `index.pck`。网页入口使用备份版的首页、故事文字、对话和唱片选择；酒馆本身始终由当前 Godot 脚本绘制。备份版的洞穴、平台和玩家视觉效果已合入关卡。
+Slime Pub 的 Godot 项目源码在 [`godot/`](godot/)。仓库根目录的 `index.html` 是网页入口，`midi-runner.html` 加载同目录的 `index.js`、`index.wasm` 和 `index.pck`。首页使用程序生成的像素酒馆背景和实时绘制的淡蓝色酒保。序章和酒馆场景始终由 Godot 绘制，沿用现有对话和唱片选择流程。
 
 进入酒馆并选择唱片后，镜头拉近到唱片机，唱臂抬起、移向唱片并落针，随后进入对应关卡。每关结束后返回酒馆，椅子上的史莱姆显示接下来要玩的关卡颜色；第 5 关结算后从第 1 关重新开始，椅子也恢复第 1 关的粉色。
 

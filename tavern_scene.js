@@ -1,4 +1,4 @@
-/* Midi Runner tavern entrance. The art is drawn from geometry at runtime. */
+/* Slime Pub tavern entrance. The art is drawn from geometry at runtime. */
 (() => {
   'use strict';
   const W = 1280, H = 720;
@@ -7,7 +7,7 @@
   canvas.width = W;
   canvas.height = H;
   canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', 'Midi Runner 酒馆入口；点击唱片机进入唱片界面');
+  canvas.setAttribute('aria-label', 'Slime Pub 酒馆入口；点击唱片机进入唱片界面');
   Object.assign(canvas.style, {
     position: 'fixed', inset: '0', width: '100vw', height: '100vh',
     zIndex: '100', cursor: 'default', background: '#281d32',
@@ -120,21 +120,19 @@
     }
     ctx.putImageData(img, x0, y0);
   }
-  function slime(a, k) {
-    const [box, radius, base] = a, elder = a[3] ?? k.elder ?? false;
+  function slime(a) {
+    const [box, radius, base] = a;
     const [x0, y0, x1, y1] = box, w = x1 - x0, h = y1 - y0;
     const hx = w / 2, cx = (x0 + x1) / 2, crown = y0 + radius;
-    const c = rgb(base), edge = rgb(elder ? '#304244' : '#743249');
+    const c = rgb(base), edge = rgb('#743249');
     const img = ctx.getImageData(x0, y0, w, h), d = img.data;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const xx = x + x0, yy = y + y0;
       const row = clamp((yy - crown) / radius, -1, 0);
       let side = hx * Math.sqrt(Math.max(0, 1 - row * row));
       if (yy >= crown) side = hx * (1 - .055 * (yy - crown) / Math.max(1, y1 - crown));
-      if (!elder) {
-        const t = clamp((yy - (y1 - 14)) / 14, 0, 1);
-        side -= 7.7 * (1 - Math.sqrt(Math.max(0, 1 - t * t)));
-      }
+      const t = clamp((yy - (y1 - 14)) / 14, 0, 1);
+      side -= 7.7 * (1 - Math.sqrt(Math.max(0, 1 - t * t)));
       const nx0 = clamp(Math.abs(xx - cx) / hx, 0, 1);
       const top = crown - radius * Math.sqrt(Math.max(0, 1 - nx0 * nx0));
       const margin = Math.min(side - Math.abs(xx - cx), yy - top, y1 - 1 - yy);
@@ -143,18 +141,17 @@
       const nx = clamp(u, -1, 1), ny = clamp((v - .35) * 1.2, -1, 1);
       const nz = Math.sqrt(Math.max(.04, 1 - .73 * nx * nx - .32 * ny * ny));
       const lambert = Math.max(0, -.48 * nx - .50 * ny + .72 * nz);
-      const vol = elder ? .55 + .39 * lambert - .20 * clamp((v - .64) / .36, 0, 1)
-        : .64 + .52 * lambert - .23 * clamp((v - .64) / .36, 0, 1);
-      const keyW = .27 * (104 / w), keyH = .16 * (85 / h), keyV = elder ? .14 : .23;
+      const vol = .64 + .52 * lambert - .23 * clamp((v - .64) / .36, 0, 1);
+      const keyW = .27 * (104 / w), keyH = .16 * (85 / h), keyV = .23;
       const key = Math.exp(-(((u + .38) / keyW) ** 2) - (((v - keyV) / keyH) ** 2));
       const broad = Math.exp(-(((u + .31) / .56) ** 2) - (((v - .37) / .55) ** 2));
       const cool = clamp((u - .56) / .36, 0, 1) * (1 - v * .55);
-      const shade = !elder ? 1 - .17 * clamp((yy - (y1 - 18)) / 9, 0, 1) : 1;
+      const shade = 1 - .17 * clamp((yy - (y1 - 18)) / 9, 0, 1);
       const rim = margin < 20 ? .75 + .23 * clamp(margin / 20, 0, 1) : 1;
       const i = (y * w + x) * 4;
       for (let ch = 0; ch < 3; ch++) {
-        let value = (c[ch] * vol + key * (elder ? [30, 27, 24][ch] : [67, 51, 47][ch])
-          + broad * (elder ? [8, 5, 3][ch] : [16, 9, 5][ch])
+        let value = (c[ch] * vol + key * [67, 51, 47][ch]
+          + broad * [16, 9, 5][ch]
           + cool * [8, 24, 34][ch]) * shade * rim;
         if (margin <= 4) value = value * .25 + edge[ch] * .75;
         d[i + ch] = clamp(value, 0, 255);
@@ -166,7 +163,7 @@
   const lum = (r, g, b) => r * .299 + g * .587 + b * .114;
   const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
   function smooth(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
-  function pixelPost(elderPose) {
+  function pixelPost() {
     const source = compose.getImageData(0, 0, W, H).data;
     for (let y = 0; y < pixelH; y++) for (let x = 0; x < pixelW; x++) {
       const si = (Math.min(H - 1, y * pixelSize + 1) * W + Math.min(W - 1, x * pixelSize + 1)) * 4;
@@ -205,17 +202,6 @@
     const actx = artContext;
     actx.imageSmoothingEnabled = false;
     actx.drawImage(pixelCanvas, 0, 0, W, H);
-    // Both brows are matched after grading so their color remains identical.
-    actx.fillStyle = '#d8dfce';
-    for (const x of [496, 553]) actx.fillRect(
-      Math.round(551 + (x - 551) * elderPose.sx),
-      Math.round(443 + (327 - 443) * elderPose.sy),
-      Math.round(28 * elderPose.sx), Math.round(9 * elderPose.sy));
-    actx.fillStyle = '#66817b';
-    for (const x of [496, 553]) actx.fillRect(
-      Math.round(551 + (x + 3 - 551) * elderPose.sx),
-      Math.round(443 + (336 - 443) * elderPose.sy),
-      Math.round(22 * elderPose.sx), Math.max(2, Math.round(3 * elderPose.sy)));
     actx.beginPath();
     actx.moveTo(423, 649); actx.lineTo(857, 649); actx.lineTo(846, 697);
     actx.lineTo(434, 697); actx.closePath();
@@ -224,7 +210,7 @@
     actx.fillStyle = '#563447'; actx.fillRect(451, 662, 378, 24);
     actx.font = '40px Upheaval, monospace';
     actx.textBaseline = 'top'; actx.textAlign = 'left';
-    hudText(actx, 'MIDI RUNNER', 128, 78);
+    hudText(actx, 'SLIME PUB', 128, 78);
     actx.font = '30px Upheaval, monospace';
     actx.textAlign = 'center';
     hudText(actx, 'CLICK THE RECORD PLAYER', 640, 654);
@@ -241,37 +227,41 @@
     if (['poly', 'line', 'rect', 'ellipse'].includes(op)) shape(op, args, kwargs);
     else if (op === 'glow') glow(args, kwargs);
     else if (op === 'shaded_poly') shadedPoly(args, kwargs);
-    else if (op === 'slime') slime(args, kwargs);
+    else if (op === 'slime') slime(args);
+    else if (op === 'bartender') {
+      const [[x, y], scale, geometry] = args;
+      for (const [fill, points] of geometry) {
+        shape('poly', [points.map(([px, py]) => [x + px * scale, y + py * scale]), fill], {});
+      }
+    }
   }
   function drawRange(commands, from, to, target) {
     ctx = target.context;
     for (let i = from; i < to; i++) drawCommand(commands[i]);
   }
   function findSceneParts(commands) {
-    const elder = commands.findIndex(c => c.op === 'slime' && c.kwargs.elder);
+    const elder = commands.findIndex(c => c.op === 'bartender');
     const young = commands.findIndex((c, i) => i > elder && c.op === 'slime');
-    const hat = commands.findIndex((c, i) => i > elder && i < young && c.op === 'poly' && c.args[0][0][1] < 260);
     const counter = commands.findIndex((c, i) => i > young && c.op === 'shaded_poly' && c.args[0][0][0] === 219);
     const player = commands.findIndex((c, i) => i > counter && c.op === 'poly' && c.args[0][0][0] === 292);
     const disc = commands.findIndex((c, i) => i > player && c.op === 'ellipse' && c.args[0][0] === 329 && c.args[0][1] === 375);
-    if ([elder, young, hat, counter, player, disc].some(i => i < 0)) throw new Error('Tavern animation layers could not be found');
-    return { elder, young, hat, counter, player, disc };
+    if ([elder, young, counter, player, disc].some(i => i < 0)) throw new Error('Tavern animation layers could not be found');
+    return { elder, young, counter, player, disc };
   }
   function makeSceneLayers(commands) {
     const p = findSceneParts(commands);
-    const base = makeLayer(true), elder = makeLayer(), hat = makeLayer();
+    const base = makeLayer(true), elder = makeLayer();
     const young = makeLayer(), counter = makeLayer(), player = makeLayer(), front = makeLayer();
     base.context.fillStyle = '#281d32'; base.context.fillRect(0, 0, W, H);
     drawRange(commands, 0, p.elder, base);
     drawRange(commands, p.young - 1, p.young, base); // stool contact shadow
-    drawRange(commands, p.elder, p.hat, elder);
-    drawRange(commands, p.hat, p.young - 1, hat);
+    drawRange(commands, p.elder, p.young - 1, elder);
     drawRange(commands, p.young, p.counter, young);
     drawRange(commands, p.counter, p.player, counter);
     drawRange(commands, p.player, p.disc, player);
     drawRange(commands, p.disc + 4, commands.length, front); // tonearm and bell remain above the disc
     ctx = compose;
-    return { base, elder, hat, young, counter, player, front };
+    return { base, elder, young, counter, player, front };
   }
   function squashPose(seconds, period, phase, width, height) {
     const cycle = ((seconds / period + phase) % 1 + 1) % 1;
@@ -344,16 +334,14 @@
     const elderPose = squashPose(seconds, 3.3, 0, .035, .045);
     const youngPose = squashPose(seconds, 2.7, .26, .05, .06);
     compose.drawImage(layers.base.image, 0, 0);
-    drawSquash(layers.elder, [450, 275, 200, 170], 551, 443, elderPose);
-    const hatShift = (276 - 443) * (elderPose.sy - 1);
-    compose.drawImage(layers.hat.image, 516, 242, 68, 43, 516, 242 + hatShift, 68, 43);
+    drawSquash(layers.elder, [455, 223, 193, 199], 551, 413, elderPose);
     drawSquash(layers.young, [725, 370, 112, 90], 781, 458, youngPose);
     compose.drawImage(layers.counter.image, 0, 0);
     compose.drawImage(layers.player.image, 0, 0);
     drawPlayerGlow(seconds);
     drawRecord(seconds);
     compose.drawImage(layers.front.image, 0, 0);
-    pixelPost(elderPose);
+    pixelPost();
     painted = true;
     present();
   }

@@ -19,7 +19,7 @@ namespace = {"__file__": str(SOURCE)}
 exec(compile(source[:world_start], str(SOURCE), "exec"), namespace)
 
 commands: list[dict] = []
-for operation in ("poly", "rect", "ellipse", "line", "glow", "shaded_poly", "slime"):
+for operation in ("poly", "rect", "ellipse", "line", "glow", "shaded_poly", "slime", "bartender"):
     original = namespace[operation]
 
     def record(*args, _operation=operation, _original=original, **kwargs):

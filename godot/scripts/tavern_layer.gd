@@ -106,7 +106,19 @@ func _draw_command(command: Dictionary) -> void:
 		"glow":
 			_draw_glow(args, kwargs)
 		"slime":
-			_draw_slime(args, kwargs)
+			_draw_slime(args)
+		"bartender":
+			_draw_bartender(args)
+
+
+func _draw_bartender(args: Array) -> void:
+	var origin := Vector2(float(args[0][0]), float(args[0][1]))
+	var sprite_scale: float = float(args[1])
+	for shape in args[2]:
+		var vertices := PackedVector2Array()
+		for point in shape[1]:
+			vertices.append(origin + Vector2(float(point[0]), float(point[1])) * sprite_scale)
+		draw_colored_polygon(vertices, _color(shape[0]))
 
 
 func _draw_shaded_poly(args: Array, kwargs: Dictionary) -> void:
@@ -146,42 +158,21 @@ func _draw_glow(args: Array, kwargs: Dictionary) -> void:
 		draw_colored_polygon(points, tint)
 
 
-func _draw_slime(args: Array, kwargs: Dictionary) -> void:
+func _draw_slime(args: Array) -> void:
 	var box: Array = args[0]
-	var elder: bool = bool(_option(args, kwargs, 3, "elder", false))
-	var base: Color = _color(args[2]) if elder else young_color
-	var key := "%s:%s" % [str(box), base.to_html()]
+	var key := "%s:%s" % [str(box), young_color.to_html()]
 	if not _slime_textures.has(key):
-		_slime_textures[key] = _make_slime_texture(box, float(args[1]), base, elder)
+		_slime_textures[key] = _make_slime_texture(box, float(args[1]), young_color)
 	draw_texture(_slime_textures[key], Vector2(float(box[0]), float(box[1])))
-	if elder:
-		_draw_elder_uniform()
 
 
-func _draw_elder_uniform() -> void:
-	# Only the shoulders and V collar show above the counter. Leave the beard,
-	# glint and every facial feature at their original coordinates.
-	draw_colored_polygon(PackedVector2Array([Vector2(468, 382), Vector2(490, 381),
-		Vector2(532, 413), Vector2(518, 443), Vector2(459, 443)]), Color("#432a38"))
-	draw_colored_polygon(PackedVector2Array([Vector2(604, 380), Vector2(629, 383),
-		Vector2(644, 443), Vector2(574, 443), Vector2(561, 413)]), Color("#302735"))
-	draw_colored_polygon(PackedVector2Array([Vector2(486, 382), Vector2(496, 383),
-		Vector2(532, 410), Vector2(526, 414)]), Color("#e4d7be"))
-	draw_colored_polygon(PackedVector2Array([Vector2(595, 382), Vector2(605, 381),
-		Vector2(567, 414), Vector2(561, 409)]), Color("#c9c2b3"))
-	draw_colored_polygon(PackedVector2Array([Vector2(531, 405), Vector2(548, 409),
-		Vector2(555, 410), Vector2(569, 405), Vector2(564, 419), Vector2(550, 415),
-		Vector2(536, 419)]), Color("#6d3543"))
-	draw_circle(Vector2(550, 412), 4.0, Color("#a3635d"))
-
-
-func _make_slime_texture(box: Array, radius: float, base: Color, elder: bool) -> ImageTexture:
+func _make_slime_texture(box: Array, radius: float, base: Color) -> ImageTexture:
 	var w := int(box[2] - box[0])
 	var h := int(box[3] - box[1])
 	var image := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	image.fill(Color.TRANSPARENT)
 	var hx := float(w) * 0.5
-	var edge: Color = Color("#304244") if elder else Color.from_hsv(base.h, minf(1.0, base.s * 0.85), base.v * 0.49)
+	var edge: Color = Color.from_hsv(base.h, minf(1.0, base.s * 0.85), base.v * 0.49)
 	for y in h:
 		for x in w:
 			var yy := float(y + int(box[1]))
@@ -192,9 +183,8 @@ func _make_slime_texture(box: Array, radius: float, base: Color, elder: bool) ->
 			var side := hx * sqrt(maxf(0.0, 1.0 - row * row))
 			if yy >= crown:
 				side = hx * (1.0 - 0.055 * (yy - crown) / maxf(1.0, float(box[3]) - crown))
-			if not elder:
-				var corner := clampf((yy - (float(box[3]) - 14.0)) / 14.0, 0.0, 1.0)
-				side -= 7.7 * (1.0 - sqrt(maxf(0.0, 1.0 - corner * corner)))
+			var corner := clampf((yy - (float(box[3]) - 14.0)) / 14.0, 0.0, 1.0)
+			side -= 7.7 * (1.0 - sqrt(maxf(0.0, 1.0 - corner * corner)))
 			var flat_x := clampf(absf(xx - cx) / hx, 0.0, 1.0)
 			var top := crown - radius * sqrt(maxf(0.0, 1.0 - flat_x * flat_x))
 			var margin := minf(side - absf(xx - cx), minf(yy - top, float(box[3]) - 1.0 - yy))
@@ -206,19 +196,19 @@ func _make_slime_texture(box: Array, radius: float, base: Color, elder: bool) ->
 			var ny := clampf((v - 0.35) * 1.2, -1.0, 1.0)
 			var nz := sqrt(maxf(0.04, 1.0 - 0.73 * nx * nx - 0.32 * ny * ny))
 			var lambert := maxf(0.0, -0.48 * nx - 0.50 * ny + 0.72 * nz)
-			var volume := 0.55 + 0.39 * lambert - 0.20 * clampf((v - 0.64) / 0.36, 0.0, 1.0) if elder else 0.64 + 0.52 * lambert - 0.23 * clampf((v - 0.64) / 0.36, 0.0, 1.0)
+			var volume := 0.64 + 0.52 * lambert - 0.23 * clampf((v - 0.64) / 0.36, 0.0, 1.0)
 			var key_w := 0.27 * 104.0 / float(w)
 			var key_h := 0.16 * 85.0 / float(h)
-			var key_v := 0.14 if elder else 0.23
+			var key_v := 0.23
 			var highlight := exp(-pow((u + 0.38) / key_w, 2.0) - pow((v - key_v) / key_h, 2.0))
 			var broad := exp(-pow((u + 0.31) / 0.56, 2.0) - pow((v - 0.37) / 0.55, 2.0))
 			var cool := clampf((u - 0.56) / 0.36, 0.0, 1.0) * (1.0 - v * 0.55)
-			var shade := 1.0 if elder else 1.0 - 0.17 * clampf((yy - (float(box[3]) - 18.0)) / 9.0, 0.0, 1.0)
+			var shade := 1.0 - 0.17 * clampf((yy - (float(box[3]) - 18.0)) / 9.0, 0.0, 1.0)
 			var rim := 0.75 + 0.23 * clampf(margin / 20.0, 0.0, 1.0) if margin < 20.0 else 1.0
 			var color := Color(
-				(base.r * volume + highlight * (30.0 if elder else 67.0) / 255.0 + broad * (8.0 if elder else 16.0) / 255.0 + cool * 8.0 / 255.0) * shade * rim,
-				(base.g * volume + highlight * (27.0 if elder else 51.0) / 255.0 + broad * (5.0 if elder else 9.0) / 255.0 + cool * 24.0 / 255.0) * shade * rim,
-				(base.b * volume + highlight * (24.0 if elder else 47.0) / 255.0 + broad * (3.0 if elder else 5.0) / 255.0 + cool * 34.0 / 255.0) * shade * rim)
+				(base.r * volume + highlight * 67.0 / 255.0 + broad * 16.0 / 255.0 + cool * 8.0 / 255.0) * shade * rim,
+				(base.g * volume + highlight * 51.0 / 255.0 + broad * 9.0 / 255.0 + cool * 24.0 / 255.0) * shade * rim,
+				(base.b * volume + highlight * 47.0 / 255.0 + broad * 5.0 / 255.0 + cool * 34.0 / 255.0) * shade * rim)
 			if margin <= 4.0:
 				color = color * 0.25 + edge * 0.75
 			color.a = 1.0

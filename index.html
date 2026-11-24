@@ -4,17 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#181011">
-  <title>Midi Runner · The Tavern</title>
+  <title>Slime Pub</title>
   <link rel="icon" href="index.icon.png">
-  <link rel="stylesheet" href="tavern.css?v=20261124c">
+  <link rel="stylesheet" href="tavern.css?v=slime-pub">
+  <script src="slime-pub-cover.js?v=1" defer></script>
   <script src="tavern-ui.js?v=20261124a" defer></script>
 </head>
 <body>
-  <iframe id="game" class="game" src="midi-runner.html?v=20261124l" title="Midi Runner game" inert aria-hidden="true"></iframe>
+  <iframe id="game" class="game" src="midi-runner.html?v=slime-pub" title="Slime Pub game" inert aria-hidden="true"></iframe>
   <main id="home" class="home">
-    <div class="home-panel">
-      <div class="home-record" aria-hidden="true"></div>
-      <h1>Midi Runner</h1>
+    <div class="home-stage">
+      <canvas id="home-art" width="480" height="270" aria-hidden="true"></canvas>
+      <h1>Slime Pub</h1>
       <button id="enter-tavern" class="action" type="button" disabled>Enter the tavern <span aria-hidden="true">▸</span></button>
       <p id="boot-status" role="status">Preparing the tavern…</p>
     </div>
@@ -50,6 +51,6 @@
     </button>
     <p id="launch-error" class="launch-error" role="alert" hidden></p>
   </dialog>
-  <noscript><p class="noscript">Enable JavaScript to play Midi Runner.</p></noscript>
+  <noscript><p class="noscript">Enable JavaScript to play Slime Pub.</p></noscript>
 </body>
 </html>

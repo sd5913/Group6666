@@ -17,36 +17,78 @@ button:focus-visible { outline: 2px solid #ffe2a7; outline-offset: 5px; }
 
 .home, .tavern { position: relative; z-index: 1; }
 
+@font-face {
+  font-family: Upheaval;
+  src: url('tavern_upheavtt.ttf') format('truetype');
+  font-display: swap;
+}
+
 .home {
   display: grid;
   min-height: 100svh;
   place-items: center;
-  padding: 1.6rem;
-  background: #251923;
-  background-image: repeating-linear-gradient(0deg, #251923 0 4px, #2a1c29 4px 5px);
+  background: #120b0b;
 }
 
-.home-panel {
-  display: grid;
-  width: min(100%, 440px);
-  justify-items: center;
-  padding: clamp(1.4rem, 6vw, 3rem);
-  background: #30202a;
-  border: 2px solid #99664f;
-  box-shadow: 0 0 0 5px #211721, inset 0 0 0 4px #442c36, 0 12px #211721;
+.home-stage {
+  position: relative;
+  width: min(100%, calc(100svh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
   text-align: center;
+  background: #1e100f url('slime-pub-room.png') center / 100% 100%;
+  image-rendering: pixelated;
 }
 
-.home-record {
-  width: 100px;
-  aspect-ratio: 1;
-  clip-path: polygon(26% 0, 74% 0, 74% 7%, 87% 7%, 87% 15%, 94% 15%, 94% 28%, 100% 28%, 100% 72%, 94% 72%, 94% 85%, 87% 85%, 87% 93%, 74% 93%, 74% 100%, 26% 100%, 26% 93%, 13% 93%, 13% 85%, 6% 85%, 6% 72%, 0 72%, 0 28%, 6% 28%, 6% 15%, 13% 15%, 13% 7%, 26% 7%);
-  background: radial-gradient(circle, #281d29 0 5%, #c58985 6% 21%, #221a25 22% 36%, #5a3a50 37% 39%, #221a25 40% 50%, #5a3a50 51% 53%, #221a25 54% 62%, #5a3a50 63% 65%, #221a25 66% 100%);
+.home-stage canvas { display: block; width: 100%; height: 100%; }
+
+.home h1 {
+  position: absolute;
+  top: 13.6%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: #ffdf9e;
+  text-shadow: .21cqw .42cqw #6b3927;
+  font: normal 8.33cqw/1 Upheaval, monospace;
+  letter-spacing: .24cqw;
+  white-space: nowrap;
+  text-transform: uppercase;
 }
 
-.home h1 { margin: .9rem 0 1.3rem; color: #f6cf91; font: bold clamp(2rem, 8vw, 3.65rem)/1 'Courier New', monospace; text-transform: uppercase; }
-.home p { min-height: 1.3em; margin: .9rem 0 0; color: #deada4; font: .85rem/1.35 'Courier New', monospace; }
-.home .action:disabled { opacity: .55; }
+.home .action {
+  position: absolute;
+  top: 84.8%;
+  left: 50%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .6em;
+  width: max(158px, 28.5%);
+  min-height: 40px;
+  height: 9%;
+  padding: 0 max(.75rem, 2.2cqw);
+  transform: translate(-50%, -50%);
+  border: max(2px, .42cqw) solid #72acc6;
+  background: #294964;
+  box-shadow: 0 0 0 max(2px, .31cqw) #1d293a, 0 .7cqw #14121e, inset 0 .21cqw #4b7b98;
+  color: #eff5fb;
+  font: normal max(14px, 2.08cqw)/1 Upheaval, monospace;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.home .action:hover:not(:disabled) { background: #355a76; }
+.home .action:disabled { opacity: .64; }
+.home .action span { margin: 0; }
+.home p {
+  position: absolute;
+  top: 94%;
+  inset-inline: .5rem;
+  margin: 0;
+  color: #e5bd97;
+  font: max(11px, .95cqw)/1.25 'Courier New', monospace;
+}
 
 .tavern {
   width: min(100%, calc(100svh * 16 / 9));

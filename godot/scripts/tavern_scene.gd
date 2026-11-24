@@ -22,7 +22,6 @@ const RECORD_ZOOM := 4.2
 var _picture: TextureRect
 var _hud: Node2D
 var _elder: Node2D
-var _hat: Node2D
 var _young: Node2D
 var _disc: Node2D
 var _glow: Node2D
@@ -62,8 +61,7 @@ func _ready() -> void:
 	var base_commands: Array = commands.slice(0, parts.elder)
 	base_commands.append(commands[parts.young - 1]) # stool contact shadow
 	_add_layer(stage, base_commands)
-	_elder = _animated_group(stage, Vector2(551, 443), commands.slice(parts.elder, parts.hat))
-	_hat = _add_layer(stage, commands.slice(parts.hat, parts.young - 1))
+	_elder = _animated_group(stage, Vector2(551, 413), commands.slice(parts.elder, parts.young - 1))
 	_young = _animated_group(stage, Vector2(781, 458), commands.slice(parts.young, parts.counter), true)
 	_add_layer(stage, commands.slice(parts.counter, parts.player))
 	_add_layer(stage, commands.slice(parts.player, parts.disc))
@@ -97,20 +95,17 @@ func _find_parts(commands: Array) -> Dictionary:
 	for i in commands.size():
 		var op: String = commands[i].op
 		var args: Array = commands[i].args
-		if op == "slime":
-			if bool(commands[i].kwargs.get("elder", false)):
-				parts.elder = i
-			elif parts.has("elder") and not parts.has("young"):
-				parts.young = i
-		if parts.has("elder") and not parts.has("hat") and op == "poly" and args[0][0][1] < 260:
-			parts.hat = i
+		if op == "bartender":
+			parts.elder = i
+		if op == "slime" and parts.has("elder") and not parts.has("young"):
+			parts.young = i
 		if parts.has("young") and not parts.has("counter") and op == "shaded_poly" and args[0][0][0] == 219:
 			parts.counter = i
 		if parts.has("counter") and not parts.has("player") and op == "poly" and args[0][0][0] == 292:
 			parts.player = i
 		if parts.has("player") and not parts.has("disc") and op == "ellipse" and args[0][0] == 329 and args[0][1] == 375:
 			parts.disc = i
-	return parts if parts.size() == 6 else {}
+	return parts if parts.size() == 5 else {}
 
 
 func _add_layer(parent: Node, items: Array, mode := "geometry") -> Node2D:
@@ -167,12 +162,9 @@ func _process(delta: float) -> void:
 	var young_pose := _pose(_clock, 2.7, 0.26, 0.05, 0.06)
 	_elder.scale = elder_pose
 	_young.scale = young_pose
-	_hat.position.y = (276.0 - 443.0) * (elder_pose.y - 1.0)
 	_disc.spin_angle = _clock * 1.4
 	_disc.queue_redraw()
 	_glow.modulate.a = 0.91 + 0.09 * sin(_clock * 2.2)
-	_hud.elder_scale = elder_pose
-	_hud.queue_redraw()
 
 
 func _pose(time: float, period: float, phase: float, width: float, height: float) -> Vector2:

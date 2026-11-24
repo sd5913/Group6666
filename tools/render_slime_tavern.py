@@ -1,4 +1,4 @@
-"""Deterministic Midi Runner tavern menu concept, drawn from geometry and pixels.
+"""Deterministic Slime Pub tavern menu, drawn from geometry and pixels.
 
 The reference's domed slime silhouette is generated with a signed-distance-like
 mask, rim and glint, following the game's code-drawn character approach. The
@@ -8,6 +8,7 @@ YCoCg levels, and a 4x4 Bayer dither. HUD is drawn after that pass.
 
 from __future__ import annotations
 
+import json
 import math
 import random
 from pathlib import Path
@@ -20,6 +21,7 @@ W, H = 1280, 720
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "tavern_preview.png"
 FONT = ROOT.parent / "tavern_upheavtt.ttf"
+BARTENDER = json.loads((ROOT.parent / "godot/data/bartender.json").read_text(encoding="utf-8"))
 RNG = random.Random(42)
 
 
@@ -108,7 +110,7 @@ def bottle(x, shelf_y, w, h, c, cap="#c79755"):
     rect((x+w//3,shelf_y-h+30,x+w//3+3,shelf_y-h+40),shade(body,1.55))
 
 
-def slime(box, radius, base, elder=False):
+def slime(box, radius, base):
     """A code-generated dome with the game's dark rim and pixel glint."""
     x0,y0,x1,y1 = box
     yy, xx = np.mgrid[y0:y1, x0:x1]
@@ -121,12 +123,11 @@ def slime(box, radius, base, elder=False):
     side = hx*np.sqrt(np.maximum(0,1-row*row))
     low = yy >= crown_y
     side[low] = hx*(1-.055*(yy[low]-crown_y)/max(1,y1-crown_y))
-    if not elder:
-        # A broad, nearly flat contact edge with only small rounded corners
-        # matches the squat pink slime in the visual reference.
-        corner = 14
-        t = np.clip((yy-(y1-corner))/corner,0,1)
-        side -= corner*.55*(1-np.sqrt(np.maximum(0,1-t*t)))
+    # A broad, nearly flat contact edge with only small rounded corners
+    # matches the squat pink slime in the visual reference.
+    corner = 14
+    t = np.clip((yy-(y1-corner))/corner,0,1)
+    side -= corner*.55*(1-np.sqrt(np.maximum(0,1-t*t)))
     nx = np.clip(np.abs(xx-cx)/hx,0,1)
     top = crown_y-radius*np.sqrt(np.maximum(0,1-nx*nx))
     margin = np.minimum.reduce([side-np.abs(xx-cx),yy-top,y1-1-yy])
@@ -142,33 +143,27 @@ def slime(box, radius, base, elder=False):
     ny = np.clip((v-.35)*1.20,-1,1)
     nz = np.sqrt(np.maximum(.04,1-.73*nx*nx-.32*ny*ny))
     lambert = np.maximum(0, -.48*nx-.50*ny+.72*nz)
-    if elder:
-        vol = .55 + .39*lambert - .20*np.clip((v-.64)/.36,0,1)
-    else:
-        vol = .64 + .52*lambert - .23*np.clip((v-.64)/.36,0,1)
+    vol = .64 + .52*lambert - .23*np.clip((v-.64)/.36,0,1)
     color = c[None,None,:]*vol[...,None]
-    # Keep the elder's reflected spot the same physical size as the young
-    # slime's, so its blocky glint remains distinct on the larger body.
     key_w = .27 * (104/(x1-x0))
     key_h = .16 * (85/(y1-y0))
-    key_v = .14 if elder else .23
+    key_v = .23
     key_u = .38
     key = np.exp(-((u+key_u)/key_w)**2-((v-key_v)/key_h)**2)
     broad = np.exp(-((u+.31)/.56)**2-((v-.37)/.55)**2)
-    color += key[...,None]*np.array([30,27,24] if elder else [67,51,47])
-    color += broad[...,None]*np.array([8,5,3] if elder else [16,9,5])
+    color += key[...,None]*np.array([67,51,47])
+    color += broad[...,None]*np.array([16,9,5])
     cool_rim = np.clip((u-.56)/.36,0,1)*(1-v*.55)
     color += cool_rim[...,None]*np.array([8,24,34])
-    if not elder:
-        # A darker compressed gel lip spreads its weight onto the stool.
-        band = np.clip((yy-(y1-18))/9,0,1)
-        color *= (1-.17*band)[...,None]
+    # A darker compressed gel lip spreads its weight onto the stool.
+    band = np.clip((yy-(y1-18))/9,0,1)
+    color *= (1-.17*band)[...,None]
     # The rim is shaded, not a uniform dark outline; this preserves the
     # silhouette while making the right and lower edges recede in space.
     rim = inside & (margin < 20)
     color[rim] *= (.75 + .23*np.clip(margin[rim]/20,0,1))[...,None]
     edge = inside & (margin <= 4)
-    edge_color = np.array(rgb("#304244" if elder else "#743249"))
+    edge_color = np.array(rgb("#743249"))
     color[edge] = color[edge]*.25 + edge_color*.75
     color = np.clip(color,0,255)
     mask = inside
@@ -179,57 +174,18 @@ def slime(box, radius, base, elder=False):
     d = ImageDraw.Draw(im)
     # pixels for the characteristic little highlight
     glint_x = x0 + int(hx * .55)
-    glint_y = y0 + int(hy * (.28 if elder else .42))
-    glint_color = "#fff9ed" if elder else "#f9eece"
+    glint_y = y0 + int(hy * .42)
+    glint_color = "#f9eece"
     rect((glint_x,glint_y,glint_x+14,glint_y+8),glint_color)
     rect((glint_x-6,glint_y+8,glint_x+1,glint_y+18),glint_color)
-    if elder:
-        # Glasses, brow creases and soft gel folds suggest age; the dome
-        # stays entirely smooth and hairless like the reference slime.
-        # Keep the face at eye level while shortening the dome.
-        face_y = y0 - 18
-        line([(x0+38,face_y+69),(x0+65,face_y+65)],"#527b76",3)
-        line([(x0+99,face_y+65),(x0+127,face_y+69)],"#527b76",3)
-        # Eyebrows are drawn as a matched pair after pixel grading below.
-        # This keeps their apparent value identical on both lit sides.
-        rect((x0+48,face_y+88,x0+57,face_y+105),"#1d2732")
-        rect((x0+107,face_y+88,x0+116,face_y+105),"#1d2732")
-        # glasses: blocky frames echo the game's square foreground shapes
-        rect((x0+34,face_y+81,x0+72,face_y+113),None,"#564b52",4)
-        rect((x0+92,face_y+81,x0+130,face_y+113),None,"#564b52",4)
-        line([(x0+72,face_y+88),(x0+92,face_y+88)],"#564b52",4)
-        line([(x0+32,face_y+90),(x0+15,face_y+85)],"#564b52",4)
-        line([(x0+132,face_y+90),(x0+151,face_y+85)],"#564b52",4)
-        # drooping light gel moustache with no human face/body
-        poly([(x0+59,face_y+126),(x0+81,face_y+120),(x0+94,face_y+124),(x0+110,face_y+119),
-              (x0+118,face_y+135),(x0+98,face_y+143),(x0+84,face_y+136),(x0+71,face_y+144),
-              (x0+52,face_y+137)],"#d8ded3","#678985",3)
-        line([(x0+62,face_y+151),(x0+82,face_y+157),(x0+103,face_y+150)],"#486b69",3)
-        line([(x0+24,face_y+123),(x0+33,face_y+128)],"#5c8581",3)
-        line([(x0+136,face_y+123),(x0+144,face_y+128)],"#5c8581",3)
-        # tiny amber music-note badge embedded in the gel
-        rect((x0+67,y1-34,x0+83,y1-18),"#f5bd61",radius=4)
-        rect((x0+77,y1-32,x0+80,y1-22),"#66353b")
-        ellipse((x0+70,y1-24,x0+77,y1-19),"#66353b")
-        # Petite black top hat: a faceted crown, narrow band and shallow brim.
-        # Its brim is slightly narrower than the service bell on the counter.
-        hat_x = round(cx)
-        poly([(hat_x-17,y0-26),(hat_x+15,y0-26),
-              (hat_x+17,y0-5),(hat_x-18,y0-5)],"#191922","#0a0b12",3)
-        poly([(hat_x-16,y0-25),(hat_x-11,y0-25),
-              (hat_x-12,y0-6),(hat_x-18,y0-5)],"#48434d")
-        poly([(hat_x+12,y0-25),(hat_x+16,y0-25),
-              (hat_x+17,y0-5),(hat_x+12,y0-6)],"#101119")
-        ellipse((hat_x-18,y0-30,hat_x+16,y0-21),"#302e38","#0b0c14",2)
-        line([(hat_x-13,y0-25),(hat_x+9,y0-25)],"#68616d",2)
-        poly([(hat_x-17,y0-11),(hat_x+16,y0-11),
-              (hat_x+17,y0-5),(hat_x-18,y0-5)],"#6a3c4c")
-        line([(hat_x-15,y0-10),(hat_x+11,y0-10)],"#9c6570",2)
-        ellipse((hat_x-29,y0-5,hat_x+28,y0+5),"#1b1b25","#090a12",3)
-        line([(hat_x-25,y0-2),(hat_x+22,y0-2)],"#5b5360",2)
-    else:
-        rect((x0+18,y0+37,x0+25,y0+54),"#251a31")
-        rect((x0+48,y0+37,x0+55,y0+54),"#251a31")
+    rect((x0+18,y0+37,x0+25,y0+54),"#251a31")
+    rect((x0+48,y0+37,x0+55,y0+54),"#251a31")
+
+
+def bartender(origin, scale, shapes):
+    for fill, points in shapes:
+        d.polygon([(round(origin[0] + x * scale), round(origin[1] + y * scale))
+                   for x, y in points], fill=rgb(fill))
 
 
 # ---- Geometric scene, back to front ------------------------------------------------
@@ -395,7 +351,7 @@ line([(741,477),(843,469)],"#d88d56",3)
 
 # The elder slime is drawn before the foreground counter, like the reference bartender.
 ellipse((453,386,654,423),"#291f31")
-slime((456,276,646,443),104,"#85afa3",elder=True)
+bartender((462, 226), 1.85, BARTENDER)
 
 # younger pink slime sitting beside the counter
 ellipse((736,445,832,463),"#442337")
@@ -497,12 +453,6 @@ def pixel_post(src: Image.Image) -> Image.Image:
 im=pixel_post(im)
 d=ImageDraw.Draw(im)
 
-# The two brows use the same pixels after scene grading so directional light
-# cannot make one appear thicker or darker than the other.
-for bx in (496,553):
-    rect((bx,327,bx+27,335),"#d8dfce")
-    rect((bx+3,336,bx+24,338),"#66817b")
-
 # HUD after the world post-process: nearest pixel font, shadow, readable spacing.
 font=ImageFont.truetype(str(FONT),40)
 small=ImageFont.truetype(str(FONT),30)
@@ -513,7 +463,7 @@ def hud_text(x,y,s,font,color="#f9e7c4",anchor=None):
     d.text((x,y),s,font=font,fill=color,anchor=anchor,stroke_width=1,stroke_fill="#4a2f40")
 
 
-hud_text(128,78,"MIDI RUNNER",font)
+hud_text(128,78,"SLIME PUB",font)
 poly([(423,649),(857,649),(846,697),(434,697)],"#362638","#9e6770",3)
 rect((451,662,829,686),"#563447")
 hud_text(640,654,"PRESS SPACE TO START",small,anchor="ma")
