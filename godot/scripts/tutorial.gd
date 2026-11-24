@@ -206,7 +206,7 @@ func _step_on() -> void:
 	_plate_mat.albedo_color = L.mats.accent.darkened(0.3)
 	_plate_mat.emission_energy_multiplier = 0.25
 	L.sfx.play("slam_hit", 0.7)
-	L.pixel_post.pulse(L.mats.accent, 0.25)
+	L.player.look.pulse(L.mats.accent, 0.25, L.PULSE_T)
 	L.cam_rig.jolt(0.12)
 
 

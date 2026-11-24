@@ -6,6 +6,8 @@ render_mode unshaded, shadows_disabled;
 const vec3 SLIME_GLINT = vec3(1.0);
 const vec3 SLIME_EYE = vec3(0.19608, 0.10196, 0.17255);
 uniform vec4 body : source_color = vec4(1.0);
+uniform vec4 pulse_color : source_color = vec4(1.0);
+uniform float pulse_strength = 0.0;
 uniform float rim = 0.65;
 varying vec2 slime_plane;
 varying vec3 slime_normal;
@@ -37,6 +39,7 @@ void fragment() {
 		+ broad * vec3(16.0, 9.0, 5.0) / 255.0
 		+ cool * vec3(8.0, 24.0, 34.0) / 255.0) * shade;
 	color *= mix(0.70, 1.0, smoothstep(0.35, 0.85, abs(n.z)));
+	color = mix(color, pow(pulse_color.rgb, vec3(1.0 / 1.52)), pulse_strength);
 
 	// Keep the same left-hand highlight as the tavern guest. Eyes shift
 	// right because the runner is facing into the course.

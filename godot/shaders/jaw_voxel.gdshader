@@ -4,6 +4,7 @@ shader_type spatial;
 #else
 #define INST instance uniform
 #endif
+#include "res://shaders/cave_stone.gdshaderinc"
 // A jaw column made of voxels (built by scripts/view/voxel_column.gd, driven by scripts/mechanics/jaws.gd).
 // Whole: like a pillar — the jaw's colour, bright at the working end (the face towards the gap) and darker away from
 // it, each voxel a touch lighter or darker than its neighbours so the blocks read; it glows as it closes in.
@@ -41,10 +42,13 @@ uniform float pull = 30.0;         // how fast it is pulled back (m/s²)
 uniform float pop = 2.0;           // extra upward speed for the voxels right at the break (m/s)
 uniform float bounce = 0.35;       // how much of its fall speed a voxel keeps when it bounces
 uniform float life = 1.2;          // about how long a voxel flies before it shrinks away (seconds)
+uniform int cave_level = 0;        // 0 keeps the original material for other mechanics and the player
+uniform bool cave_jaw = false;
 
 varying float from_end;
 varying float jitter;
 varying float flash;
+varying vec3 rock_pos;
 
 float hash(float n) {
 	return fract(sin(n * 127.1 + 0.13) * 43758.5453);
@@ -57,6 +61,7 @@ vec3 turn(vec3 v, vec3 axis, float a) {
 
 void vertex() {
 	vec3 c = INSTANCE_CUSTOM.xyz;
+	rock_pos = c + VERTEX;  // rock pattern stays on each shard after it breaks
 	float seed = INSTANCE_CUSTOM.w * 97.0;
 	from_end = abs(c.y);
 	jitter = COLOR.r;
@@ -126,6 +131,32 @@ void fragment() {
 	ALBEDO = mix(mix(tint.rgb * 0.12, sky.rgb, far_sky), lit, f) * j;
 	EMISSION = tint.rgb * (glow_energy * cap * (0.15 + glow) * f * f * shine + 0.6 * flash) * j + sky.rgb * 0.2 * far_sky * (1.0 - f);
 	ROUGHNESS = 0.55;
+	if (cave_level > 0) {
+		vec3 shadow;
+		vec3 stone;
+		vec3 vein;
+		cave_palette(cave_level, shadow, stone, vein);
+		float depth = abs(rock_pos.y);
+		if (cave_jaw) {
+			// Cooler shafts and a double seam around each working end mark the pair.
+			stone = mix(stone, vec3(0.13, 0.22, 0.34), 0.60);
+			vein = mix(vein, vec3(0.39, 0.65, 0.83), 0.58);
+		}
+		vec3 rock = cave_strata(vec2(rock_pos.x + rock_pos.z, depth), cave_level, sqrt(f),
+			shadow, stone, vein) * mix(1.0, j, 0.55);
+		float rim = 1.0 - smoothstep(0.10, 0.20, depth);
+		vec3 frost = mix(vec3(0.86, 0.93, 0.99), vein, 0.37);
+		float seam = 0.0;
+		if (cave_jaw) {
+			seam = step(0.25, depth) * (1.0 - step(0.34, depth));
+			rock = mix(rock, shadow, step(0.16, depth) * (1.0 - step(0.25, depth)) * 0.55);
+		}
+		ALBEDO = mix(mix(rock, frost, rim * 0.87 + seam * 0.40), sky.rgb, far_sky * (1.0 - f) * (1.0 - rim));
+		EMISSION = vein * f * (0.04 + 0.09 * glow + flash * 0.55)
+			+ frost * rim * (0.11 + glow * shine * 0.27) + vein * seam * glow * 0.16;
+		ROUGHNESS = 0.82;
+		SPECULAR = 0.23;
+	}
 #if CURRENT_RENDERER == RENDERER_COMPATIBILITY
 	ALBEDO *= mix(0.6, 1.0, max(shine, far_sky * (1.0 - f)));
 	EMISSION *= mix(0.4, 1.0, max(shine, far_sky * (1.0 - f)));  // (it lights in two passes that add up after their tone curve: pale colours went white)

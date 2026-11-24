@@ -83,7 +83,8 @@ var MECHANIC_SECTIONS := ""    # the final level: which song section each mechan
 var GRAVITY := 22.0
 var JUMP_V := 9.0
 var PERFECT := 0.05
-var PERFECT_TINT := 0.2        # a perfect tints the whole view this much in gold for a moment (0-1),
+var PERFECT_TINT := 0.2        # a perfect tints the player this much in gold for a moment (0-1),
+var PULSE_T := 0.22            # how long the player's judgement tint lasts
 var PERFECT_SHAKE := 0.1       # and gives it this small a jolt
 var JUMP_BUFFER := 0.18       # a jump pressed this early still counts once it can be used
 var EARLY_PRESS := 0.45        # a mechanic's jump (glide, steps, press spring) pressed up to this early waits for its note
@@ -206,6 +207,7 @@ var player: PlayerScript
 var pillars: Pillars
 var background: MidiBackground
 var far_waves: FarWaves           # the three far rhythm-wave rows behind the backdrop
+var uses_cave_art := false
 var pixel_post: PixelPost
 var cam_rig: CameraRig
 var hud: Hud
@@ -247,6 +249,7 @@ func _ready() -> void:
 	get_tree().physics_interpolation = true  # everything moves at 120 Hz; the screen shows it smoothly at any refresh rate
 	_setup_input()
 	data = JSON.parse_string(FileAccess.get_file_as_string(level_path))
+	uses_cave_art = int(data.level) >= 2 and int(data.level) <= 5
 	_build_band_frames()
 	song.load_for(level_path)
 	beat = data.beat_sec
@@ -274,8 +277,9 @@ func _ready() -> void:
 	for m in mechanics:
 		_in_section(m, m.place)
 	pillars.build()
-	background.build()
-	far_waves.build()
+	if not uses_cave_art:
+		background.build()
+		far_waves.build()
 	for m in mechanics:
 		m.build()
 	if tutorial != null:
@@ -283,7 +287,7 @@ func _ready() -> void:
 	cue_text.build()
 	if event_labels != null:
 		event_labels.build()
-	cam_rig.setup()
+	cam_rig.setup(uses_cave_art)
 	_setup_player()
 	hud.setup(_tips())
 	_setup_audio()
@@ -1261,6 +1265,7 @@ func _make_materials() -> void:
 	# every column (visualizer, mechanic, jaws, ...) shares the theme-gradient shader; colours are set per instance
 	mats.pillar = ShaderMaterial.new()
 	mats.pillar.shader = PillarShader
+	mats.pillar.set_shader_parameter("cave_level", int(data.level))
 	# mechanics that must stand out against the pillars take the opposite hue of the theme
 	var opposite := fposmod(theme_color.h + 0.5, 1.0)
 	mats.accent = Color.from_hsv(opposite, ACCENT_S, ACCENT_V)
@@ -1328,6 +1333,13 @@ func _song_time() -> float:
 func _physics_process(delta: float) -> void:
 	if autoplay and Dev.on():
 		Results.mark_auto()
+	if state == "play":
+		var target := now + delta
+		if audio.playing and DisplayServer.get_name() != "headless":
+			target = _song_time() - AUDIO_OFFSET
+		_advance_song(target, delta)
+		cam_rig.update(delta)
+		return
 	var step_d := delta  # (how far this step moves the world: in the tutorial, slowed or stopped by its clock)
 	if state == "countdown":
 		if freeze_left > 0.0:  # carrying on: standing still first
@@ -1338,16 +1350,29 @@ func _physics_process(delta: float) -> void:
 			audio.play(maxf(0.0, now + AUDIO_OFFSET))
 			state = "play"
 			say("")
-	elif state == "play":
-		if audio.playing and DisplayServer.get_name() != "headless":
-			now = maxf(now, _song_time() - AUDIO_OFFSET)
-		else:  # no audio device (headless tests) or the song has ended
-			now += delta
 	elif state == "tutorial":
 		step_d = tutorial.clock(delta)
 		now += step_d
 		if state != "tutorial":  # (the plate: the count-in's clock from here on)
 			step_d = delta
+	_step_course(step_d)
+	if state == "tutorial" and step_d <= 0.0:  # still animate while waiting for the key
+		player.look.update(delta)
+	cam_rig.update(delta)
+
+
+## Keep both axes and the platform motion on the same song clock. The audio playhead
+## can repeat a reading or skip ahead, especially when the browser is busy.
+func _advance_song(target: float, delta: float) -> void:
+	# Bound the work this frame after a long interruption. Later ticks catch up.
+	for i in 8:
+		if state != "play" or now + delta > target + 0.000001:
+			break
+		now += delta
+		_step_course(delta)
+
+
+func _step_course(step_d: float) -> void:
 	pillars.bulges.clear()
 	for m in mechanics:
 		m.prepare_bulges()
@@ -1386,12 +1411,9 @@ func _physics_process(delta: float) -> void:
 		if state == "play" and now >= data.dur + 0.3:
 			_win()
 	elif state == "ready" or state == "title":
-		player.step(delta, x, player_support(x), false)
-	elif state == "tutorial":  # (stopped, waiting for the key)
-		player.look.update(delta)
+		player.step(step_d, x, player_support(x), false)
 	elif state == "tune":
 		tune.step()
-	cam_rig.update(delta)
 
 
 ## What only needs to change once per drawn frame.
@@ -1404,8 +1426,11 @@ func _process(delta: float) -> void:
 		_say_in -= delta
 		if _say_in < 0.0 and state == "fail":
 			say(_said_later)
-	background.update()
-	far_waves.update()
+	if uses_cave_art:
+		cam_rig.backdrop.follow(cam_rig.cam.get_global_transform_interpolated().origin.x, now, kick_pulse(now))
+	else:
+		background.update()
+		far_waves.update()
 	cue_text.update()
 	hud.update(delta)
 	if state == "win" or state == "fail":  # (nothing to press on these screens: no hints)
@@ -1515,7 +1540,7 @@ func judge(err: float, sound := true) -> void:
 	if absf(err) <= PERFECT:
 		stats.perfect += 1
 		popup("PERFECT%s" % ms, Color(1.0, 0.9, 0.35))
-		pixel_post.pulse(Color(1.0, 0.9, 0.35), PERFECT_TINT)  # (the whole view, for a moment: the popup's gold)
+		player.look.pulse(Color(1.0, 0.9, 0.35), PERFECT_TINT, PULSE_T)
 		cam_rig.jolt(PERFECT_SHAKE)
 	else:
 		stats.good += 1

@@ -151,8 +151,9 @@ func _add_block(t: float, big: bool, branch: String) -> Dictionary:
 	var b := {"t": t, "t_in": t_in, "y": y, "x": x, "w": w, "d": d, "big": big, "broken": false, "credited": false, "branch": branch,
 		"centre": y, "gap": JAW_OPEN, "color": L.mats.accent_pale if big else L.mats.accent, "seg": seg,
 		"squeeze": L.HALF + JAW_CLEAR + (0.0 if not seg.is_empty() else (hi - lo) * 0.5 + JAW_AIR_MARGIN)}
-	b.bot = VoxelColumn.make(self, w, d, JAW_REACH, -1, L.GRAVITY)
-	b.top = VoxelColumn.make(self, w, d, JAW_REACH, 1, L.GRAVITY)
+	var cave_level := int(L.data.level)
+	b.bot = VoxelColumn.make(self, w, d, JAW_REACH, -1, L.GRAVITY, cave_level, true)
+	b.top = VoxelColumn.make(self, w, d, JAW_REACH, 1, L.GRAVITY, cave_level, true)
 	for col in [b.bot, b.top]:
 		col.position = Vector3(x, y, 0.0)
 	blocks.append(b)

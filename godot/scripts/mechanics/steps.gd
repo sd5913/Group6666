@@ -352,7 +352,7 @@ func build() -> void:
 			var xa: float = (L.track.x_at(seg.ta) + L.track.x_at(seg.tb) - w) * 0.5
 			var xb: float = xa + w
 			var tint := _tint(r.jumps[k].pitch)
-			var slab := VoxelColumn.make(self, w, TREAD_D, TREAD_H, -1, L.GRAVITY)  # origin: its top face
+			var slab := VoxelColumn.make(self, w, TREAD_D, TREAD_H, -1, L.GRAVITY, int(L.data.level))  # origin: its top face
 			slab.position = Vector3((xa + xb) * 0.5, seg.base, 0.0)
 			VoxelColumn.fade(slab, TREAD_H, TREAD_H * 0.25)
 			var edge_mat := Draw.mat(tint.lightened(0.55), tint.lightened(0.3), 0.6)

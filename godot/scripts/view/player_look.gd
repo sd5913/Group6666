@@ -54,6 +54,7 @@ var sound: Callable             # (name, power): play a sound (the level's sfx)
 var theme := Color(1.0, 0.5, 0.12)
 var slime_color := Color("#ed5897")
 var _body: ShaderMaterial
+var _pulse_tween: Tween
 var _line: ShaderMaterial
 var _s := 0.0                   # squash (-) / stretch (+), and how fast it is changing
 var _sv := 0.0
@@ -115,6 +116,18 @@ func setup(player: Node3D) -> void:
 	_fx = P.LOOK_VOXEL != 0
 	if _fx:
 		_setup_voxels()
+
+
+## Show a rhythm judgement on the body without tinting the scene.
+func pulse(color: Color, amount: float, duration: float) -> void:
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+	_body.set_shader_parameter("pulse_color", color)
+	_body.set_shader_parameter("pulse_strength", clampf(amount, 0.0, 1.0) if duration > 0.0 else 0.0)
+	if duration > 0.0 and amount > 0.0:
+		_pulse_tween = create_tween()
+		_pulse_tween.tween_method(func(value: float): _body.set_shader_parameter("pulse_strength", value),
+			clampf(amount, 0.0, 1.0), 0.0, duration)
 
 
 ## Knocked (run into a wall, hit by a fired wall): squash by `squash`, and the top lurches on along the run by `lean`

@@ -21,37 +21,21 @@ var PIXEL_EDGE := 0.14         # brightness difference between neighbouring art 
 var PIXEL_HIGHLIGHT := 0.0     # how much lighter the light side of an edge gets
 var PIXEL_SAT := 1.15          # colour saturation before the steps (1: unchanged)
 var PIXEL_CONTRAST := 1.05
-var PULSE_T := 0.22            # the whole view's tint (pulse) fades out over this long (seconds)
-
 var L
 var _rect: ColorRect
 var _mat: ShaderMaterial
-var _tint: ColorRect            # the whole view tinted for a moment (a perfect, a flip); under the HUD, so the words stay as they are
-var _tint_left := 0.0
-var _tint_a := 0.0
 
 
 func _ready() -> void:
 	layer = 0  # over the 3D view, under the HUD
 	_mat = ShaderMaterial.new()
 	_mat.shader = PostShader
+	_mat.set_shader_parameter("legacy_cave_grade", not L.uses_cave_art)
 	_rect = ColorRect.new()
 	_rect.material = _mat
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_rect)
-	_tint = ColorRect.new()
-	_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tint.visible = false
-	_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(_tint)
-
-
-## Tint the whole view `amount` (0-1) of `color`, fading out over PULSE_T.
-func pulse(color: Color, amount: float) -> void:
-	_tint.color = color
-	_tint_a = amount
-	_tint_left = PULSE_T
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -62,9 +46,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Every frame (the settings may have been changed by tuning.csv after _ready).
 func _process(delta: float) -> void:
-	_tint_left = maxf(0.0, _tint_left - delta)
-	_tint.visible = _tint_left > 0.0
-	_tint.color.a = _tint_a * _tint_left / PULSE_T
 	_rect.visible = PIXEL_ON
 	if not PIXEL_ON:
 		return

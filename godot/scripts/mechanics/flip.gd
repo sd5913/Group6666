@@ -13,7 +13,7 @@ extends "res://scripts/mechanics/mechanic.gd"
 ## from the side towards the player, and fall into the run (or the gap) below.
 ## Going up always means it worked: SPACE here never hops. A press with no flip to take just wobbles the jelly; an early
 ## one waits for the kick and counts as early. A flip that goes flashes its beam wide, throws voxels off and tints the
-## view (FLIP_TINT), and landing on the other row swells that row; a kick let pass turns its beam red at once and says
+## player (FLIP_TINT), and landing on the other row swells that row; a kick let pass turns its beam red at once and says
 ## MISS, before the fall.
 
 const Draw := preload("res://scripts/view/draw.gd")
@@ -39,7 +39,7 @@ var TOP_SHINE := 0.2           # how much the hanging columns whiten and glow (l
 var TOP_GRAIN := 0.4           # how much a hanging column's voxels differ in shade from each other
 var TOP_BOOST := 1.5           # in the groove bars (3a) the columns reach this much further with the music,
 var TOP_BOOST_DIP := 0.2       # and this much lower besides (metres; calm near where the player meets the row)
-var FLIP_TINT := 0.16          # a flip that goes tints the whole view this much in the accent (0-1; a perfect one takes gold instead)
+var FLIP_TINT := 0.16          # a flip tints the player in the accent (0-1; a perfect one takes gold instead)
 var FLIP_BURST := 16           # voxels thrown off as it goes (half as many where it lands)
 var FLIP_SHAKE := 0.14         # camera jolt as it goes
 var FLIP_SWELL := 0.7          # landing, the row swells this far around the player (metres)
@@ -219,7 +219,7 @@ func build() -> void:
 				"leave": leave, "gone": false}
 			# a voxel column, its origin the face the player runs on (widths in whole voxels, so they share them)
 			var w := maxf(VoxelColumn.VOXEL, snappedf(col.w, VoxelColumn.VOXEL))
-			col.vox = VoxelColumn.make(self, w, w, TOP_LEN, 1, L.GRAVITY)
+			col.vox = VoxelColumn.make(self, w, w, TOP_LEN, 1, L.GRAVITY, int(L.data.level))
 			col.vox.position = Vector3(col.x, col.base, 0.0)
 			VoxelColumn.fade(col.vox, TOP_LEN, 0.6, 1.0)  # bright at the face, fading up into the sky (not into the dark)
 			VoxelColumn.grain(col.vox, TOP_GRAIN)
@@ -383,15 +383,14 @@ func jump_claim(press: float) -> int:
 	return TAKEN
 
 
-## A flip goes: its beam flashes (update_motion), voxels fly off the row it leaves, the jelly stretches, the view jolts and
-## tints.
+## A flip goes: its beam flashes, voxels fly off the row, the jelly stretches and changes tint, and the view jolts.
 func _went(f: Dictionary) -> void:
 	f.fired_t = L.now
 	var p: Vector3 = L.player.global_position
 	Draw.burst(L, p + Vector3.UP * L.HALF * L.player.up, L.mats.accent_frag, FLIP_BURST, 8.0, 0.16)  # (it has just turned over)
 	L.player.look.bump(-1.2, 0.0)
 	L.cam_rig.jolt(FLIP_SHAKE)
-	L.pixel_post.pulse(L.mats.accent, FLIP_TINT)
+	L.player.look.pulse(L.mats.accent, FLIP_TINT, L.PULSE_T)
 
 
 ## Landed on the other row: voxels fly off it and it swells around the player for a moment.

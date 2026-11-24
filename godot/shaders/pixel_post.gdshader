@@ -26,6 +26,7 @@ uniform float saturation = 1.15;
 uniform float contrast = 1.05;
 uniform float compat_gamma = 0.6;
 uniform float compat_gain = 0.5;
+uniform bool legacy_cave_grade = true;
 
 const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
@@ -116,13 +117,19 @@ void fragment() {
 	float Y = dot(c, vec3(0.25, 0.5, 0.25));
 	float co = 0.5 * c.r - 0.5 * c.b;
 	float cg = -0.25 * c.r + 0.5 * c.g - 0.25 * c.b;
-	ivec2 b = ivec2(mod(cell, 4.0));
+	vec2 dither_cell = legacy_cave_grade ? cell : floor(SCREEN_UV * res / px);
+	ivec2 b = ivec2(mod(dither_cell, 4.0));
 	float th = (BAYER[b.y * 4 + b.x] + 0.5) / 16.0 - 0.5;
 	float grad = smoothstep(0.001, 0.006, max(ramp_x, ramp_y)) * (1.0 - dark_side);
+	if (!legacy_cave_grade) {
+		// The cave texture already contains pixel shading. Reduce moving
+		// speckle in the shadows when the foreground's sampling grid shifts.
+		grad *= smoothstep(0.22, 0.48, y);
+	}
 	Y = floor(Y * (levels - 1.0) + 0.5 + th * dither * grad) / (levels - 1.0);
 	co = floor(co * chroma_levels + 0.5) / chroma_levels;
 	cg = floor(cg * chroma_levels + 0.5) / chroma_levels;
 	c = vec3(Y + co - cg, Y + cg, Y - co - cg);
 	vec2 cave_cell = vec2(cell.x, floor(SCREEN_UV.y * 216.0));
-	COLOR = vec4(clamp(cavern_grade(c, cave_cell), 0.0, 1.0), 1.0);
+	COLOR = vec4(clamp(legacy_cave_grade ? cavern_grade(c, cave_cell) : c, 0.0, 1.0), 1.0);
 }

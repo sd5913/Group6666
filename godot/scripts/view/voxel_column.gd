@@ -15,10 +15,12 @@ const FULL := 0.6              # metres from the working end that are solid
 
 static var _meshes := {}
 static var _material: ShaderMaterial
+static var _stone_materials := {}
 
 
 ## A new column (w along the run, d across it) under parent, sharing its voxels with every column of that size.
-static func make(parent: Node, w: float, d: float, reach: float, dir: int, gravity: float) -> MultiMeshInstance3D:
+static func make(parent: Node, w: float, d: float, reach: float, dir: int, gravity: float,
+		cave_level := 0, cave_jaw := false) -> MultiMeshInstance3D:
 	var key := "%.3f %.3f %.2f %d" % [w, d, reach, dir]
 	if not _meshes.has(key):
 		_meshes[key] = _build(w, d, reach, dir)
@@ -26,10 +28,19 @@ static func make(parent: Node, w: float, d: float, reach: float, dir: int, gravi
 		_material = ShaderMaterial.new()
 		_material.shader = VoxelShader
 		_material.set_shader_parameter("voxel", VOXEL)
-	_material.set_shader_parameter("gravity", gravity)
+	var material := _material
+	if cave_level > 0:
+		var style := Vector2i(cave_level, int(cave_jaw))
+		if not _stone_materials.has(style):
+			var stone := _material.duplicate() as ShaderMaterial
+			stone.set_shader_parameter("cave_level", cave_level)
+			stone.set_shader_parameter("cave_jaw", cave_jaw)
+			_stone_materials[style] = stone
+		material = _stone_materials[style]
+	material.set_shader_parameter("gravity", gravity)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = _meshes[key]
-	mmi.material_override = _material
+	mmi.material_override = material
 	# room for the debris flying off it
 	mmi.custom_aabb = AABB(Vector3(-8.0, -reach - 8.0 if dir < 0 else -8.0, -8.0), Vector3(16.0, reach + 16.0, 16.0))
 	parent.add_child(mmi)
@@ -62,6 +73,9 @@ static func grain(col: GeometryInstance3D, amount: float) -> void:
 static func set_sky(color: Color) -> void:
 	if _material != null:
 		DrawParam.shared_param(_material, "sky", color)
+	for style in _stone_materials:
+		if style.y == 0:
+			DrawParam.shared_param(_stone_materials[style], "sky", color)
 
 
 ## Break column `col` apart: `at` is where (world), `hole` the radius that goes at once and `hold` how much later the

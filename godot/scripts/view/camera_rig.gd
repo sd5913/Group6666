@@ -1,8 +1,9 @@
 extends Node3D
 ## The camera (side view, a little ahead of and above the player, easing vertically, with a jolt for impacts; lifting
 ## and widening a little while the player rides a glide's ribbon; in a held climax sinking a little on every kick and
-## springing back, never zooming), the sky (flashing brighter on those kicks)
-## and the light, and 5-5's colours: warm on the home chord, cool elsewhere.
+## springing back, never zooming), the backdrop haze and the warm/cool level lighting.
+
+const CaveBackdrop := preload("res://scripts/view/cave_backdrop.gd")
 
 const AHEAD := 4.5             # the camera looks this far ahead of the player,
 const CAM_UP := 2.6            # from this far above it,
@@ -13,23 +14,22 @@ const GLIDE_UP := 1.0          # riding a glide's ribbon the camera rises this m
 const GLIDE_FOV := 6.0         # widens this much (degrees),
 const GLIDE_EASE := 0.3        # easing in and out over this long (seconds)
 const WARM := {"bg": Color(0.98, 0.87, 0.74), "amb": Color(1.0, 0.86, 0.72), "sun": Color(1.0, 0.93, 0.82)}
-const COOL := {"bg": Color(0.72, 0.81, 0.98), "amb": Color(0.74, 0.82, 1.0), "sun": Color(0.86, 0.92, 1.0)}
+const COOL := {"amb": Color(0.74, 0.82, 1.0), "sun": Color(0.86, 0.92, 1.0)}
 
 var CLIMAX_CAM_PUMP := 0.05    # in a held climax (track.CLIMAX_HOLD) the camera sinks this far on every kick (metres)
-var CLIMAX_SKY_PULSE := 0.06   # and the sky flashes this much brighter, both gone 0.15 s later (level.kick_pulse)
 
 var L
 var env: Environment
-var _sky := Color()             # the sky's colour without the kicks' flash
 var sun: DirectionalLight3D
 var cam: Camera3D
+var backdrop: CaveBackdrop
 var cam_y := 2.0
 var shake := 0.0
 var glide_k := 0.0              # 0..1: how far into the riding view it is
 var palette: Array = []         # [[t, tonic]]
 
 
-func setup() -> void:
+func setup(with_cave_art := false) -> void:
 	for e in L.data.events:
 		if e.branch == "5b" or e.branch == "5c":
 			palette.append([e.t, e.branch == "5b"])
@@ -41,8 +41,8 @@ func setup() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = RenderingServer.get_current_rendering_method() != "gl_compatibility"  # (there it lifts the whole picture: no threshold)
 	var pal := palette_at(0.0)
-	env.background_color = pal.bg
-	_sky = pal.bg
+	# The original cave grade uses this warm clear colour to identify empty sky.
+	env.background_color = WARM.bg
 	env.ambient_light_color = pal.amb
 	var we := WorldEnvironment.new()
 	we.environment = env
@@ -59,6 +59,11 @@ func setup() -> void:
 	if RenderingServer.get_current_rendering_method() == "gl_compatibility":  # (its depth buffer is coarser: far columns fought in stripes)
 		cam.near = 1.0
 		cam.far = 800.0
+	if with_cave_art:
+		backdrop = CaveBackdrop.new()
+		backdrop.setup(int(L.data.level))
+		cam.add_child(backdrop)
+		env.background_color = backdrop.haze
 
 
 func palette_at(t: float) -> Dictionary:
@@ -94,9 +99,6 @@ func update(delta: float) -> void:
 	cam.fov = FOV + GLIDE_FOV * smoothstep(0.0, 1.0, glide_k)
 	var pal := palette_at(L.now)
 	var k := 1.0 - exp(-delta * 4.0)
-	_sky = _sky.lerp(pal.bg, k)
-	var flash: float = CLIMAX_SKY_PULSE * pulse
-	env.background_color = Color(minf(1.0, _sky.r + flash), minf(1.0, _sky.g + flash), minf(1.0, _sky.b + flash))
 	preload("res://scripts/view/draw.gd").shared_param(L.mats.pillar, "sky", env.background_color)  # hanging columns fade into it
 	env.ambient_light_color = env.ambient_light_color.lerp(pal.amb, k)
 	sun.light_color = sun.light_color.lerp(pal.sun, k)
