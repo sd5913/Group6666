@@ -1,0 +1,199 @@
+:root {
+  color-scheme: dark;
+  font-family: Georgia, serif;
+  color: #f7e7cc;
+  background: #181011;
+  --gold: #eab878;
+  --line: #986543;
+  --dark: #25191a;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+button { font: inherit; color: inherit; }
+button:not(:disabled) { cursor: pointer; }
+button:focus-visible { outline: 2px solid #ffe2a7; outline-offset: 5px; }
+
+.home, .tavern { position: relative; z-index: 1; }
+
+.home {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 1.6rem;
+  background: #251923;
+  background-image: repeating-linear-gradient(0deg, #251923 0 4px, #2a1c29 4px 5px);
+}
+
+.home-panel {
+  display: grid;
+  width: min(100%, 440px);
+  justify-items: center;
+  padding: clamp(1.4rem, 6vw, 3rem);
+  background: #30202a;
+  border: 2px solid #99664f;
+  box-shadow: 0 0 0 5px #211721, inset 0 0 0 4px #442c36, 0 12px #211721;
+  text-align: center;
+}
+
+.home-record {
+  width: 100px;
+  aspect-ratio: 1;
+  clip-path: polygon(26% 0, 74% 0, 74% 7%, 87% 7%, 87% 15%, 94% 15%, 94% 28%, 100% 28%, 100% 72%, 94% 72%, 94% 85%, 87% 85%, 87% 93%, 74% 93%, 74% 100%, 26% 100%, 26% 93%, 13% 93%, 13% 85%, 6% 85%, 6% 72%, 0 72%, 0 28%, 6% 28%, 6% 15%, 13% 15%, 13% 7%, 26% 7%);
+  background: radial-gradient(circle, #281d29 0 5%, #c58985 6% 21%, #221a25 22% 36%, #5a3a50 37% 39%, #221a25 40% 50%, #5a3a50 51% 53%, #221a25 54% 62%, #5a3a50 63% 65%, #221a25 66% 100%);
+}
+
+.home h1 { margin: .9rem 0 1.3rem; color: #f6cf91; font: bold clamp(2rem, 8vw, 3.65rem)/1 'Courier New', monospace; text-transform: uppercase; }
+.home p { min-height: 1.3em; margin: .9rem 0 0; color: #deada4; font: .85rem/1.35 'Courier New', monospace; }
+.home .action:disabled { opacity: .55; }
+
+.tavern {
+  width: min(100%, calc(100svh * 16 / 9));
+  min-height: 100svh;
+  margin-inline: auto;
+  display: grid;
+  align-content: center;
+  background: #181011;
+}
+
+.scene { position: relative; aspect-ratio: 16 / 9; }
+.skip-intro { position: absolute; top: 3%; right: 2%; }
+.intro-caption {
+  position: absolute; inset: auto 4% 3%; margin: 0; text-align: center;
+  color: #fff0d6; background: #241a29f2; border-block: 1px solid #926b55;
+  padding: .48em 1em; font: bold clamp(.8rem, 1.65vw, 1.6rem)/1.35 'Courier New', monospace;
+}
+.scene-art { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+
+.counter-record {
+  position: absolute;
+  top: 49%;
+  left: 24.1%;
+  width: 11.9%;
+  min-width: 30px;
+  height: 11.5%;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.counter-record:focus-visible { outline: none; }
+.conversation {
+  position: absolute;
+  left: 50%;
+  bottom: max(4vh, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  width: min(83%, 880px);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.65rem;
+  padding: 1.15rem 1.4rem;
+  background: #25182a;
+  border: 2px solid var(--line);
+  box-shadow: 0 0 0 3px #160e12, inset 0 0 0 3px #392325, 0 8px 0 #120d0db8;
+}
+
+.speaker { margin: 0 0 .45rem; color: #ffa9c6; font: bold .76rem/1.3 'Courier New', monospace; letter-spacing: .11em; text-transform: uppercase; }
+.dialogue { margin: 0; font: 600 clamp(.92rem, 1.55vw, 1.3rem)/1.45 'Courier New', monospace; }
+
+.action {
+  flex: none;
+  min-height: 43px;
+  padding: .6rem .85rem;
+  background: #53312c;
+  border: 1px solid #ae7850;
+  box-shadow: inset 0 -2px #3b231f, 2px 2px #150e11;
+  color: #ffdda4;
+  font: bold .8rem/1.2 'Courier New', monospace;
+}
+
+.action:hover { background: #694036; }
+.action span { margin-left: .25em; }
+
+.record-picker {
+  width: min(calc(100% - 2.7rem), 460px);
+  max-height: calc(100svh - 2rem);
+  padding: 1.35rem;
+  color: #f7e7cc;
+  background: var(--dark);
+  border: 2px solid #b28155;
+  box-shadow: 0 0 0 4px #231419, inset 0 0 0 3px #4c312e, 0 12px 0 #100b0db8;
+}
+
+.record-picker::backdrop { background: #160e12c2; }
+.picker-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.15rem; }
+.picker-top h1 { margin: 0; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: normal; color: #ffdda4; }
+.close-picker { flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid #795139; background: #3c2425; color: var(--gold); font: 1.45rem/1 Georgia, serif; }
+.close-picker:hover { background: #53312c; }
+
+.record-option {
+  display: flex;
+  width: 100%;
+  min-height: 118px;
+  align-items: center;
+  gap: 1.1rem;
+  padding: .95rem;
+  background: #412729;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 -3px #2f1d20;
+  text-align: left;
+}
+
+.record-option:hover { background: #543234; border-color: #d29c66; }
+.album-art { position: relative; flex: none; display: block; width: 108px; height: 80px; }
+.album-vinyl { position: absolute; right: 0; top: 3px; width: 74px; aspect-ratio: 1; border-radius: 50%; border: 2px solid #110d12; background: repeating-radial-gradient(circle, #21191e 0 4px, #3a2a35 5px, #21191e 6px 7px); }
+.album-vinyl::after { position: absolute; content: ''; inset: 34%; border-radius: 50%; background: radial-gradient(circle, #1b111a 0 15%, #e898ac 17% 34%, #b04965 39%); }
+.album-sleeve { position: absolute; inset: 0 auto 0 0; width: 76px; display: grid; place-items: center; border: 2px solid #965575; background: repeating-linear-gradient(145deg, #4e2b4d 0 13px, #593150 14px 28px, #633452 29px 38px); box-shadow: inset 0 0 0 2px #2d1c2a, 2px 2px #1a1120; }
+.sleeve-slime { width: 34px; height: 24px; background: linear-gradient(#ffc0cc 0 20%, #ec739b 20% 74%, #b24a76 74%); clip-path: polygon(27% 0, 73% 0, 73% 12%, 89% 12%, 89% 31%, 100% 31%, 100% 88%, 88% 88%, 88% 100%, 12% 100%, 12% 88%, 0 88%, 0 31%, 11% 31%, 11% 12%, 27% 12%); }
+.sleeve-slime::before { content: ''; display: block; width: 3px; height: 4px; margin: 10px 0 0 11px; background: #452337; box-shadow: 9px 0 #452337; }
+
+.record-copy { display: grid; gap: .35rem; }
+.record-copy strong { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 1.17; }
+.record-copy > span { color: #f2adbf; font-size: .91rem; }
+.record-copy .play-label { margin-top: .35rem; color: #ffdda4; font: bold .76rem/1.3 'Courier New', monospace; }
+.launch-error { margin-bottom: 0; color: #ffbac6; line-height: 1.4; }
+
+.game { position: fixed; inset: 0; width: 100%; height: 100%; }
+.game { z-index: 0; border: 0; background: #181424; }
+.game[inert] { opacity: 0; pointer-events: none; }
+.noscript { margin: 1rem; }
+
+@media (max-aspect-ratio: 4/3) {
+  .tavern { width: 100%; }
+  .conversation { position: relative; left: auto; bottom: auto; transform: none; width: min(calc(100% - 2rem), 660px); margin: 1.25rem auto 0; }
+}
+
+@media (max-width: 560px) {
+  .conversation { flex-wrap: wrap; justify-content: flex-end; gap: .7rem; padding: .9rem 1rem; }
+  .conversation-copy { flex-basis: 100%; }
+  .record-picker { padding: 1rem; }
+  .record-option { gap: .75rem; padding: .75rem; }
+  .album-art { width: 84px; height: 66px; }
+  .album-sleeve { width: 60px; }
+  .album-vinyl { width: 60px; }
+}
+
+/* The current Godot tavern paints the art. These controls sit over it. */
+.home { z-index: 2; }
+.tavern { z-index: 1; width: 100%; background: transparent; pointer-events: none; }
+.tavern .scene { width: min(100%, calc(100svh * 16 / 9)); margin-inline: auto; }
+.counter-record { top: 50.7%; left: 22.3%; width: 14%; height: 11.1%; pointer-events: auto; }
+.conversation { pointer-events: auto; }
+.game[inert] { opacity: 1; pointer-events: none; }
+body.playing .game { pointer-events: auto; }
+.prologue { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.prologue .skip-intro { pointer-events: auto; }
+.prologue .intro-caption { position: absolute; inset: auto 4% 3%; }
+body.prologue-active .game { animation: story-camera 7.5s ease-in-out both; }
+@keyframes story-camera {
+  from { transform: scale(1.08) translateX(1.5%); }
+  to { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.prologue-active .game { animation: none; }
+}
+.album-sleeve { background: linear-gradient(145deg, #3a253b, var(--chair-color, #ed5897)); }
+.album-sleeve::before { display: none; }

@@ -1,0 +1,6 @@
+# Keep the user-provided backup beside the project for reference. Its own
+# nested Git history and old exported game are not part of this build.
+/Group6666-backup-20261119-111006/
+
+# Local reference transcriptions that the game and build do not use.
+/godot/assets/music/midi/
