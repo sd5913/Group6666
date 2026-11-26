@@ -12,7 +12,6 @@ const Iris := preload("res://scripts/view/iris.gd")
 const ART_SIZE := Vector2(1280.0, 720.0)
 const PLAYER_HIT := Rect2(285.0, 365.0, 179.0, 80.0)
 const RECORD_FOCUS := Vector2(375.0, 408.0)
-const RECORD_CENTER := Vector2(375.0, 392.0)
 const ARM_PIVOT := Vector2(443.0, 385.0)
 const ARM_PARKED := -0.52
 const ARM_ON_RECORD := 0.18
@@ -62,6 +61,7 @@ func _ready() -> void:
 	base_commands.append(commands[parts.young - 1]) # stool contact shadow
 	_add_layer(stage, base_commands)
 	_elder = _animated_group(stage, Vector2(551, 413), commands.slice(parts.elder, parts.young - 1))
+	_elder.position.y += 12.0 # tuck the lower corners behind the counter
 	_young = _animated_group(stage, Vector2(781, 458), commands.slice(parts.young, parts.counter), true)
 	_add_layer(stage, commands.slice(parts.counter, parts.player))
 	_add_layer(stage, commands.slice(parts.player, parts.disc))
@@ -216,11 +216,4 @@ func _launch_level() -> void:
 	RunState.clear()
 	RunState.intro_due = true
 	RunState.tutorial_due = true
-	Iris.start(get_tree(), "res://scenes/level_%d.tscn" % level, Callable(self, "_iris_spot"))
-
-
-func _iris_spot() -> Dictionary:
-	var zoom := _picture.scale.x * _art_scale
-	return {"center": _picture.position + RECORD_CENTER * zoom,
-		"half": Vector2(42.0, 17.0) * zoom, "corner": 12.0 * zoom,
-		"body": Color("#bd5a78"), "line": Color("#201d2d")}
+	Iris.start(get_tree(), "res://scenes/level_%d.tscn" % level)

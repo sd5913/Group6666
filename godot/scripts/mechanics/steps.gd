@@ -14,8 +14,7 @@ extends "res://scripts/mechanics/mechanic.gd"
 ## STEP_EXIT_BELOW under the last tread (which keeps still for it, not pumping on the bass; a glide taking off within two beats
 ## takes off from up there too); a rest of a beat in the arpeggio ends a stairs. A press early
 ## (L.EARLY_PRESS before the first jump; on the stairs, any time since the last jump) waits for the note; earlier than
-## the window, the jump still goes but counts as early (a miss). A jump not pressed: the tread it was for gives way
-## (the last one: the leap to the ground is too long to make without it), and the player drops into the gap.
+## the window, the jump still goes but counts as early (a miss). Missing the jump leaves the gap to cross.
 ## A tread is a floating block of voxels in the accent colour, its hue leaning with its note's pitch, fading into the
 ## dark downwards like the pillars, with a bright top edge; the arpeggio's notes are drawn flush on its top and front
 ## faces, like a piano roll, each lighting up on its note (shaders/tread_notes.gdshader — nothing stands out of it). It
@@ -293,7 +292,7 @@ func carve() -> void:
 				break
 
 
-## A tread stays where it is (no pumping on the bass); one given way is no longer there.
+## A tread stays where it is (no pumping on the bass) until it is left behind.
 func surface(s: Dictionary, _top: float, _x: float) -> float:
 	return -INF if s.get("gone", false) else s.base
 
@@ -419,7 +418,7 @@ func update_motion(_delta: float) -> void:
 		for k in r.treads.size():
 			var seg: Dictionary = r.treads[k]
 			var look: Dictionary = seg.look
-			if look.get("gone", false) or look.xb < x0 or look.xa > x1:
+			if seg.get("gone", false) or look.xb < x0 or look.xa > x1:
 				continue
 			if px > look.xb + 0.5:
 				_crumble(seg)
@@ -432,10 +431,10 @@ func update_motion(_delta: float) -> void:
 			look.marks.set_shader_parameter("now", now)
 
 
-## A tread left behind (or given way): its voxels fall apart from its back end, its edge and notes go with it.
+## A tread left behind: its voxels fall apart from its back end, its edge and notes go with it.
 func _crumble(seg: Dictionary) -> void:
 	var look: Dictionary = seg.look
-	look.gone = true
+	seg.gone = true
 	VoxelColumn.break_apart(look.slab, Vector3(look.xa, seg.base, 0.0), 0.0, 0.0, STEP_CRUMBLE, Vector3(-1.0, 0.5, 0.0),
 		-INF, 0.0, 0.0)
 	_debris.add([look.slab])
@@ -482,17 +481,12 @@ func hop_blocked() -> bool:
 	return false
 
 
-## A jump whose window is over unpressed: the tread it was for gives way.
+## Expire the input window. The landing surface stays available until the player has passed it.
 func before_step(_delta: float) -> void:
 	for r in runs:
-		for k in r.jumps.size():
-			var j: Dictionary = r.jumps[k]
-			if j.judged or j.missed or L.now <= j.t + STEP_WINDOW + 0.01:
-				continue
-			j.missed = true
-			if k < r.treads.size():
-				r.treads[k].gone = true
-				_crumble(r.treads[k])
+		for j in r.jumps:
+			if not j.judged and not j.missed and L.now > j.t + STEP_WINDOW + 0.01:
+				j.missed = true
 
 
 func fail_reason() -> String:
@@ -509,8 +503,9 @@ func skip_to(t: float) -> void:
 			if r.jumps[k].t < t:
 				r.jumps[k].judged = true
 				if k < r.treads.size() and r.treads[k].tb < t:
-					var look: Dictionary = r.treads[k].look
-					look.gone = true
+					var seg: Dictionary = r.treads[k]
+					var look: Dictionary = seg.look
+					seg.gone = true
 					look.slab.visible = false
 					look.edge.visible = false
 					look.skin.visible = false

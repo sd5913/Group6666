@@ -151,20 +151,18 @@ func update_motion() -> void:
 		if BAR_MEET_MECH and not b.near.is_empty():  # level with the mechanic pillar beside it, free further away
 			top = lerpf(b.near.base + p, top, b.calm * b.calm)
 		b.top = top
-		if not bulges.is_empty():  # drawn swollen; what is stood on (b.top) stays as it is
-			top += bulge_at(b.x, false)
 		var bottom: float = ABYSS_Y
 		Draw.place_column(b.stem, b.cap, b.x, bottom, top, b.r * 2.0, b.r * 2.0)
 		var col: Color = lines[b.line].color
 		col.h = fposmod(col.h + b.tint, 1.0)
 		b.col = col
-		var bglow := v + (BOOST_GLOW if b.boost else 0.0) + flash
+		var bglow := v + (BOOST_GLOW if b.boost else 0.0) + flash + bulge_at(b.x, false)
 		Draw.shade(b.stem, col, bglow, top)
 		Draw.shade(b.cap, col, bglow, top)
 	L.mats.goal.emission_energy_multiplier = 0.4 + 2.0 * L.band_avg(L.now, 0, 11)
 
 
-## How far a row's columns at x are drawn swollen out this step (on_top: the hanging row).
+## Extra glow from a mechanic's wave this step (on_top: the hanging row).
 func bulge_at(x: float, on_top: bool) -> float:
 	var h := 0.0
 	for b in bulges:

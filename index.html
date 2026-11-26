@@ -6,12 +6,13 @@
   <meta name="theme-color" content="#181011">
   <title>Slime Pub</title>
   <link rel="icon" href="index.icon.png">
-  <link rel="stylesheet" href="tavern.css?v=slime-pub">
+  <link rel="stylesheet" href="tavern.css?v=record-art">
   <script src="slime-pub-cover.js?v=1" defer></script>
-  <script src="tavern-ui.js?v=20261124a" defer></script>
+  <script src="record-cover.js?v=1" defer></script>
+  <script src="tavern-ui.js?v=record-art" defer></script>
 </head>
 <body>
-  <iframe id="game" class="game" src="midi-runner.html?v=slime-pub-stable-backgrounds" title="Slime Pub game" inert aria-hidden="true"></iframe>
+  <iframe id="game" class="game" src="midi-runner.html?v=slime-pub-spawn-iris" title="Slime Pub game" inert aria-hidden="true"></iframe>
   <main id="home" class="home">
     <div class="home-stage">
       <canvas id="home-art" width="480" height="270" aria-hidden="true"></canvas>
@@ -42,7 +43,7 @@
       <button class="close-picker" type="button" id="close-picker" aria-label="Back to the tavern">×</button>
     </div>
     <button id="play-record" class="record-option" type="button" autofocus>
-      <span class="album-art" aria-hidden="true"><span class="album-vinyl"></span><span class="album-sleeve"></span></span>
+      <span class="album-art" aria-hidden="true"><span class="album-vinyl"></span><canvas id="record-cover" class="album-sleeve" width="64" height="64"></canvas></span>
       <span class="record-copy">
         <strong id="record-title">The Jelly Grotto</strong>
         <span id="record-level">Level 1</span>

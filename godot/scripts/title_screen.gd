@@ -206,7 +206,7 @@ func _start() -> void:
 	RunState.tutorial_due = true
 	if _music != null:
 		create_tween().tween_property(_music, "volume_db", -60.0, settings.IRIS_CLOSE + settings.IRIS_HOLD * 0.5)
-	Iris.start(get_tree(), "res://scenes/level_%d.tscn" % level, record.hero_spot)
+	Iris.start(get_tree(), "res://scenes/level_%d.tscn" % level)
 
 
 ## Where the iris closes onto.

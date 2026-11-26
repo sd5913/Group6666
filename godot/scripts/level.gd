@@ -340,6 +340,26 @@ func iris_spot() -> Dictionary:
 		"line": Color.from_hsv(body.h, minf(1.0, body.s * 1.6 + 0.2), 0.32)}
 
 
+## Project the visible jelly at the spawn, using the render body's foot pivot and dome
+## proportions rather than the taller gameplay hitbox.
+func spawn_iris_spot() -> Dictionary:
+	var spot := iris_spot()
+	var transform: Transform3D = player.look.global_transform
+	var stretch: float = 1.0 + player.look._display_s
+	var h: float = (player.height + 0.05) * 0.67 * stretch
+	var w: float = (player.RADIUS + 0.06) * 1.56 * lerpf(1.0, 1.0 / sqrt(stretch), 0.5)
+	var feet := -HALF
+	# The side camera sees the near left and far right edges of the outlined dome.
+	var top := cam_rig.cam.unproject_position(transform * Vector3(-0.1, feet + h, -0.13))
+	var bottom := cam_rig.cam.unproject_position(transform * Vector3(-0.27, feet - 0.02, 0.46))
+	var left := cam_rig.cam.unproject_position(transform * Vector3(-w, feet + h * 0.4, 0.4))
+	var right := cam_rig.cam.unproject_position(transform * Vector3(w, feet + h * 0.32, -0.4))
+	var px: float = hud._px_scale()
+	spot.center = Vector2((left.x + right.x) * 0.5, (top.y + bottom.y) * 0.5) * px
+	spot.half = Vector2(right.x - left.x, bottom.y - top.y).abs() * (px * 0.5) + Vector2.ONE
+	return spot
+
+
 func _show_title_card() -> void:
 	state = "title"
 	_title_card = TitleCard.new()

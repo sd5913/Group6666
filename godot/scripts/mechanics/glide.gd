@@ -58,8 +58,8 @@ const GATE_GAP := 0.05          # meanwhile it keeps this far ahead of the playe
 
 var glides: Array = []          # {t0, t_end, segs [{ta, tb, pitch, y}], used, judged, released, dropped, ribbon, block, ...}
 var _debris: VoxelDebris        # end blocks broken, while their voxels fall
-var _trail: Array = []          # after-images (MeshInstance3D)
-var _history: Array = []        # the player's recent positions, newest first
+var _trail: Array[MeshInstance3D] = []
+var _history: Array[Dictionary] = []  # the player's recent visual poses, newest first
 var _dust_mat: StandardMaterial3D
 
 
@@ -256,7 +256,7 @@ func tips() -> Array:
 
 ## Each ribbon: a strip sampled along its path (the rider's feet), the arpeggio's notes drawn into it (its shader);
 ## a block past its end, its bottom level with the ribbon's surface and nothing between, where a rider still holding on
-## runs into it. One set of after-images for whoever rides.
+## runs into it.
 func build() -> void:
 	_debris = VoxelDebris.new()
 	add_child(_debris)
@@ -283,17 +283,6 @@ func build() -> void:
 		g.block = VoxelColumn.make(self, BLOCK_W, 1.0, BLOCK_H, 1, L.GRAVITY)  # origin: its underside
 		g.block_y = y_end - L.HALF
 		g.block.position = Vector3(face + BLOCK_W * 0.5, g.block_y, 0.0)
-	var ghost := CapsuleMesh.new()
-	ghost.radius = PlayerScript.RADIUS * 0.9
-	ghost.height = PlayerScript.HEIGHT * 0.9
-	for i in TRAIL:
-		var m := Draw.mat(Color(L.theme_color.lightened(0.1), 0.5 * (1.0 - float(i) / TRAIL)))
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		var node := Draw.mesh(self, ghost, m, Vector3.ZERO)
-		node.visible = false
-		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_trail.append(node)
 
 
 ## The notes a ribbon's (or a tread's) shader draws into it (shaders/note_marks.gdshaderinc): each one's stretch, metres
@@ -391,20 +380,32 @@ func update_motion(_delta: float) -> void:
 	_update_rider()
 
 
-## The rider's after-images (where it was a few steps ago, fading).
+## Use the rider's pose from a few steps ago, including its lean and stretch.
 func _update_rider() -> void:
-	var p: Vector3 = L.player.global_position
-	_history.push_front(p)
+	var look: PlayerScript.PlayerLook = L.player.look
+	var on := riding()
+	if on and _trail.is_empty():
+		for i in TRAIL:
+			var echo := look.make_trail_echo(0.5 * (1.0 - float(i) / TRAIL))
+			add_child(echo)
+			_trail.append(echo)
+	_history.push_front(look.trail_pose())
 	if _history.size() > TRAIL * TRAIL_STEPS + 1:
 		_history.pop_back()
-	var on := riding()
-	for i in TRAIL:
-		var k: int = (i + 1) * TRAIL_STEPS
-		_trail[i].visible = on and k < _history.size()
-		if _trail[i].visible:
-			_trail[i].position = _history[k]
+	for i in _trail.size():
+		var k := (i + 1) * TRAIL_STEPS
+		var echo := _trail[i]
+		echo.visible = on and k < _history.size()
+		if echo.visible:
+			var pose := _history[k]
+			echo.global_transform = pose.transform
+			var material := echo.material_override as ShaderMaterial
+			material.set_shader_parameter("squash", pose.squash)
+			material.set_shader_parameter("lean", pose.lean)
+			material.set_shader_parameter("crouch", pose.crouch)
+			material.set_shader_parameter("trail_color", pose.color)
 	if on:
-		L.player.look.lean_to = GLIDE_LEAN
+		look.lean_to = GLIDE_LEAN
 
 
 ## The end block goes, its voxels flying at `power` (m/s) with `push` handed on, a `hole` that wide going at once:

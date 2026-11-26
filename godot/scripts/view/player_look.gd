@@ -18,6 +18,7 @@ const DrawParam := preload("res://scripts/view/draw.gd")
 
 const BodyShader := preload("res://shaders/jelly.gdshader")
 const OutlineShader := preload("res://shaders/jelly_outline.gdshader")
+const TrailShader := preload("res://shaders/jelly_trail.gdshader")
 const VoxelShader := preload("res://shaders/jaw_voxel.gdshader")
 const VoxelColumn := preload("res://scripts/view/voxel_column.gd")
 
@@ -76,10 +77,10 @@ var _tint_color := Color.WHITE
 var reach := 0.0                # stretch up this far (metres) this step, holding on to something overhead
 var lean_to := 0.0              # lean the top this far forwards (metres) this step (riding a glide)
 var _ready_color := false
-var _up := 1.0                  # which way up the player was last step,
-var _turn_from := 0.0           # and the turn it is making since gravity last turned round (about z, towards the camera)
+var _turn_from := 0.0           # the gravity roll is about Z, towards the camera
 var _turn_to := 0.0
 var _turn_age := INF
+var _turn_duration := 0.3
 # the voxels (LOOK_VOXEL)
 var _vox: MultiMeshInstance3D
 var _body_mm: MultiMesh         # the body's voxels (its own: nothing of it outlives the level)
@@ -118,6 +119,26 @@ func setup(player: Node3D) -> void:
 		_setup_voxels()
 
 
+## A translucent copy uses the same mesh and vertex deformation as the body.
+func make_trail_echo(opacity: float) -> MeshInstance3D:
+	var material := ShaderMaterial.new()
+	material.shader = TrailShader
+	material.set_shader_parameter("feet", -P.HALF)
+	material.set_shader_parameter("tall", P.HEIGHT)
+	material.set_shader_parameter("opacity", opacity)
+	var echo := MeshInstance3D.new()
+	echo.mesh = _mesh.mesh
+	echo.material_override = material
+	echo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	echo.visible = false
+	return echo
+
+
+func trail_pose() -> Dictionary:
+	return {"transform": _mesh.global_transform, "squash": _display_s, "lean": _l,
+		"crouch": P.height / P.HEIGHT, "color": _color}
+
+
 ## Show a rhythm judgement on the body without tinting the scene.
 func pulse(color: Color, amount: float, duration: float) -> void:
 	if _pulse_tween != null and _pulse_tween.is_valid():
@@ -146,6 +167,14 @@ func bump(squash: float, lean: float) -> void:
 ## stretched.
 func top_y() -> float:
 	return P.head_y() + P.height * maxf(0.0, _display_s) * P.up
+
+
+## Finish the roll just ahead of the expected contact with the other row.
+func turn_for_flip(transit: float) -> void:
+	_turn_from = rotation.z
+	_turn_to -= PI
+	_turn_age = 0.0
+	_turn_duration = maxf(0.01, minf(P.LOOK_FLIP_T, transit * 0.85))
 
 
 ## Each physics step, after the player has moved.
@@ -210,14 +239,10 @@ func update(delta: float) -> void:
 	_was_grounded = P.grounded
 	_was_crouching = P.crouching()
 	_last_vy = vy
-	# a mirror flip turns the block over end over end, rolling forwards, until its feet (the pivot) face the other row
-	if P.up != _up:
-		_up = P.up
-		_turn_from = rotation.z
-		_turn_to -= PI
-		_turn_age = 0.0
-	_turn_age += delta
-	rotation.z = lerpf(_turn_from, _turn_to, smoothstep(0.0, 1.0, _turn_age / maxf(0.01, P.LOOK_FLIP_T)))
+	if _turn_age < _turn_duration:
+		# Music-driven platforms can meet the player before the planned landing.
+		_turn_age = _turn_duration if P.grounded else minf(_turn_age + delta, _turn_duration)
+		rotation.z = lerpf(_turn_from, _turn_to, smoothstep(0.0, 1.0, _turn_age / _turn_duration))
 	for m in [_body, _line]:
 		m.set_shader_parameter("squash", _display_s)
 		m.set_shader_parameter("lean", _l)

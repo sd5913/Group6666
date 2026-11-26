@@ -49,12 +49,11 @@
   }
 
   function updateRecord(info) {
-    nextLevel = Number(info.nextLevel) || 1;
+    const level = Number(info.nextLevel);
+    nextLevel = Number.isInteger(level) && level >= 1 && level <= 5 ? level : 1;
     $('record-title').textContent = nextLevel === 1 ? 'The Jelly Grotto' : `Record ${nextLevel}`;
     $('record-level').textContent = `Level ${nextLevel}`;
-    if (typeof info.chairColor === 'string') {
-      document.documentElement.style.setProperty('--chair-color', info.chairColor);
-    }
+    window.drawRecordCover?.(nextLevel);
   }
 
   window.addEventListener('message', event => {

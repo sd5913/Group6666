@@ -13,8 +13,10 @@ varying vec2 slime_plane;
 varying vec3 slime_normal;
 
 void vertex() {
-	slime_plane = vec2(VERTEX.x, slime_height(VERTEX));
-	slime_normal = NORMAL;
+	// A gravity roll reverses local X. Keep the face oriented along the course.
+	float facing = MODEL_MATRIX[0].x < 0.0 ? -1.0 : 1.0;
+	slime_plane = vec2(VERTEX.x * facing, slime_height(VERTEX));
+	slime_normal = vec3(NORMAL.x * facing, NORMAL.yz);
 	slime_shape(VERTEX);
 }
 

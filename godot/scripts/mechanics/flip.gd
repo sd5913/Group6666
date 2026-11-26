@@ -13,7 +13,7 @@ extends "res://scripts/mechanics/mechanic.gd"
 ## from the side towards the player, and fall into the run (or the gap) below.
 ## Going up always means it worked: SPACE here never hops. A press with no flip to take just wobbles the jelly; an early
 ## one waits for the kick and counts as early. A flip that goes flashes its beam wide, throws voxels off and tints the
-## player (FLIP_TINT), and landing on the other row swells that row; a kick let pass turns its beam red at once and says
+## player (FLIP_TINT), and landing on the other row lights it up; a kick let pass turns its beam red at once and says
 ## MISS, before the fall.
 
 const Draw := preload("res://scripts/view/draw.gd")
@@ -268,7 +268,7 @@ func _bar(parent: Node3D, m: Material, pos: Vector3, size: Vector3) -> void:
 	Draw.mesh(parent, box, m, pos)
 
 
-## Prepare landing swells before either the floor or hanging row moves this frame.
+## Prepare landing waves before either the floor or hanging row moves this frame.
 func prepare_bulges() -> void:
 	for f in flips:
 		if not f.get("landed", false):
@@ -299,12 +299,12 @@ func update_motion(_delta: float) -> void:
 		c.bottom = c.base - p - v * c.amp * lerpf(1.0, TOP_BOOST, boost) - TOP_BOOST_DIP * boost * calm
 		if c.gone:
 			continue
-		var face: float = c.bottom - (L.pillars.bulge_at(c.x, true) if not L.pillars.bulges.is_empty() else 0.0)
-		c.vox.position = Vector3(c.x, face, 0.0)
-		VoxelColumn.shade(c.vox, L.pillars.lines[c.line].color, minf(1.0, v * 0.8 * (1.0 + 0.5 * boost)), TOP_SHINE)
+		c.vox.position = Vector3(c.x, c.bottom, 0.0)
+		var glow: float = v * 0.8 * (1.0 + 0.5 * boost) + L.pillars.bulge_at(c.x, true)
+		VoxelColumn.shade(c.vox, L.pillars.lines[c.line].color, glow, TOP_SHINE)
 		# from the one nearest the player back, the further behind the later
 		if now > c.leave + maxf(0.0, L.track.x_at(c.leave) - c.x) / 25.0 and c.x + c.w < L.player.position.x:
-			_crumble(c, face)
+			_crumble(c, c.bottom)
 	for f in flips:
 		_swell(f)
 		var x: float = f.beam.position.x
@@ -371,6 +371,7 @@ func jump_claim(press: float) -> int:
 			return WAIT
 		f.judged = true
 		L.player.flip(FLIP_V)
+		L.player.look.turn_for_flip(f.T)
 		L.sfx.play("flip", 1.0, 0 if f.to_top else 1)
 		_went(f)
 		L.judge_early(press - f.t, FLIP_WINDOW, "Press SPACE on the kick")
@@ -393,7 +394,7 @@ func _went(f: Dictionary) -> void:
 	L.player.look.pulse(L.mats.accent, FLIP_TINT, L.PULSE_T)
 
 
-## Landed on the other row: voxels fly off it and it swells around the player for a moment.
+## Landed on the other row: voxels fly off it and a brief wave travels along it.
 func _swell(f: Dictionary) -> void:
 	if not f.has("fired_t") or L.now > f.fired_t + 2.0:
 		return
